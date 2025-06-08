@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: Individuals API
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}
+          jwk-set-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
+keycloak:
+  realm: my-realm
+  auth-server-url: http://localhost:8081
+  resource: individuals-api
+  credentials:
+    secret: miwEW85QXAd55svjd2fIbJhvJEWaOpeD
+  ssl-required: external
+  public-client: false
+  use-resource-role-mappings: true
+  admin:
+    client-id: admin-cli
+    secret: 2abujMWRWo6INyJabgGVXzGcy7KgISwQ
+    endpoint: /admin/realms/${keycloak.realm}
+  endpoints:
+    jwks: /realms/${keycloak.realm}/protocol/openid-connect/certs
+    token: /realms/${keycloak.realm}/protocol/openid-connect/token
+    userInfo: /realms/${keycloak.realm}/protocol/openid-connect/userinfo
