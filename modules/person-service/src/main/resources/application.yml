@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: person-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db
+    username: person-service
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: person
+      org:
+        hibernate:
+          envers:
+            default_schema: person
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    url: jdbc:postgresql://localhost:5432/db
+    user: person-service
+    password: password
+    schemas: person

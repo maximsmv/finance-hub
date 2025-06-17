@@ -1,0 +1,28 @@
+@startuml
+actor Клиент
+participant "individuals-api\n(Saga Orchestrator)" as IndividualsApi
+participant "person-service" as PersonService
+participant "Keycloak" as Keycloak
+
+Клиент -> IndividualsApi: POST api/v1/auth/registration
+IndividualsApi -> PersonService: POST api/v1/users/registration
+PersonService -> PersonService: Сохранить данные (JPA)
+PersonService -> PersonService: Сохранить аудит (Hibernate Envers)
+alt Успешное сохранение в person-service
+    PersonService --> IndividualsApi: Успех
+    IndividualsApi -> Keycloak: Регистрация в Keycloak
+    alt Успешная регистрация в Keycloak
+        Keycloak --> IndividualsApi: Успех
+        IndividualsApi --> Клиент: HTTP 201 (AuthResponse)
+    else Ошибка в Keycloak
+        Keycloak --> IndividualsApi: Ошибка (HTTP 400/500)
+        IndividualsApi -> PersonService: Compensate
+        PersonService -> PersonService: Удалить данные
+        PersonService --> IndividualsApi: Успех
+        IndividualsApi --> Клиент: HTTP 400/500
+    end
+else Ошибка в person-service
+    PersonService --> IndividualsApi: HTTP 400/500
+    IndividualsApi --> Клиент: HTTP 400/500
+end
+@enduml

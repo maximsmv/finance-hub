@@ -1,0 +1,67 @@
+@startuml
+package "person-service" {
+    [REST Controller]
+    [UserService]
+    [AddressService]
+    [IndividualService]
+    [CountriesService]
+    [UserRepository]
+    [AddressRepository]
+    [IndividualRepository]
+    [CountriesRepository]
+    [ActuatorEndpoints]
+    [OpenTelemetry]
+}
+
+package "Infrastructure" {
+    [PostgreSQL]
+    [JPA]
+    [Hibernate Envers]
+}
+
+package "Monitoring" {
+    [Prometheus]
+    [Grafana]
+}
+
+package "Deployment" {
+    [Docker]
+    [TestContainers]
+}
+
+package "Testing" {
+    [JUnit 5]
+    [Mockito]
+}
+
+[REST Controller] --> [UserService] : Обрабатывает HTTP запросы
+[UserService] --> [UserRepository] : Управление пользователями
+[UserService] --> [AddressService] : Координация адресов
+[UserService] --> [IndividualService] : Координация индивидуальных данных
+[UserService] --> [CountriesService] : Координация стран
+[AddressService] --> [AddressRepository] : Управление адресами
+[IndividualService] --> [IndividualRepository] : Управление индивидуальными данными
+[CountriesService] --> [CountriesRepository] : Управление странами
+
+[UserRepository] ..> [JPA] : Доступ к данным
+[AddressRepository] ..> [JPA] : Доступ к данным
+[IndividualRepository] ..> [JPA] : Доступ к данным
+[CountriesRepository] ..> [JPA] : Доступ к данным
+[UserRepository] ..> [Hibernate Envers] : Аудит изменений
+[AddressRepository] ..> [Hibernate Envers] : Аудит изменений
+[IndividualRepository] ..> [Hibernate Envers] : Аудит изменений
+[CountriesRepository] ..> [Hibernate Envers] : Аудит изменений
+[JPA] --> [PostgreSQL] : Хранилище данных
+[Hibernate Envers] --> [JPA] : Использует для записи аудита
+
+[UserService] --> [ActuatorEndpoints] : Предоставление метрик
+[UserService] --> [OpenTelemetry] : Трассировка запросов
+[ActuatorEndpoints] --> [Prometheus] : Отправка метрик
+[OpenTelemetry] --> [Grafana] : Отправка трасс
+
+[person-service] --> [Docker] : Развертывание
+[UserService] --> [JUnit 5] : Юнит-тесты
+[UserService] --> [Mockito] : Мокирование зависимостей
+[person-service] --> [TestContainers] : Интеграционные тесты
+
+@enduml
