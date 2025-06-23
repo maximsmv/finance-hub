@@ -1,4 +1,4 @@
-CREATE SEQUENCE person.revinfo_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE person.revinfo_seq START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE person.revinfo (
     rev INTEGER DEFAULT nextval('person.revinfo_seq'),

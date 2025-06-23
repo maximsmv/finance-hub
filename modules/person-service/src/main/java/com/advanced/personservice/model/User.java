@@ -30,11 +30,10 @@ public class User {
     private String email;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime created;
 
     @UpdateTimestamp
-    @Column(nullable = false)
     private LocalDateTime updated;
 
     @Column(name = "first_name", length = 32)

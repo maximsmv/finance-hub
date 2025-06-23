@@ -18,6 +18,7 @@ public class CountryRestControllerV1 {
     private final CountryService countryService;
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public List<CountryDto> getUserById() {
         return countryService.getAll();
     }

@@ -21,6 +21,7 @@ package "Infrastructure" {
 
 package "Monitoring" {
     [Prometheus]
+    [Jaeger]
     [Grafana]
 }
 
@@ -57,11 +58,12 @@ package "Testing" {
 [UserService] --> [ActuatorEndpoints] : Предоставление метрик
 [UserService] --> [OpenTelemetry] : Трассировка запросов
 [ActuatorEndpoints] --> [Prometheus] : Отправка метрик
-[OpenTelemetry] --> [Grafana] : Отправка трасс
+[OpenTelemetry] --> [Jaeger] : Отправка трасс
+[Jaeger] --> [Grafana] : Просмотр трасс
+[Prometheus] --> [Grafana] : Просмотр метрик
 
 [person-service] --> [Docker] : Развертывание
 [UserService] --> [JUnit 5] : Юнит-тесты
 [UserService] --> [Mockito] : Мокирование зависимостей
 [person-service] --> [TestContainers] : Интеграционные тесты
-
 @enduml

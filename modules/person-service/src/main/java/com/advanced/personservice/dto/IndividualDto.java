@@ -14,6 +14,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class IndividualDto {
 
+    private UUID id;
+
     @Size(max = 32)
     private String passportNumber;
 

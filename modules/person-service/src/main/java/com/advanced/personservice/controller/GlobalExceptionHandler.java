@@ -1,7 +1,9 @@
 package com.advanced.personservice.controller;
 
+import com.advanced.personservice.dto.ErrorResponse;
 import com.advanced.personservice.dto.ErrorValidationResponse;
 import com.advanced.personservice.dto.FieldErrorResponse;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -24,6 +26,14 @@ public class GlobalExceptionHandler {
                 .toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST.value())
                 .body(new ErrorValidationResponse("Validation failed", HttpStatus.BAD_REQUEST.value(), fieldErrors));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException  ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST.value())
+                .body(new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
     }
 
 }

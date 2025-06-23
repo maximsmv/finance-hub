@@ -31,13 +31,10 @@ public class Individual {
     @Column(name = "phone_number", length = 32)
     private String phoneNumber;
 
-    @Column(length = 32)
-    private String email;
-
     @Column(name = "verified_at", nullable = false)
     private LocalDateTime verifiedAt;
 
-    @Column(name = "archived_at", nullable = false)
+    @Column(name = "archived_at")
     private LocalDateTime archivedAt;
 
     @Column(length = 32)

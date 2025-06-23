@@ -23,7 +23,7 @@ public class Country {
     private Integer id;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime created;
 
     @UpdateTimestamp

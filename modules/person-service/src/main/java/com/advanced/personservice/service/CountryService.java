@@ -34,4 +34,8 @@ public class CountryService {
     public void create(CountryDto countryDto) {
         countryRepository.save(countryMapper.toEntity(countryDto));
     }
+
+    public CountryDto toDto(Country country) {
+        return countryMapper.toDto(country);
+    }
 }

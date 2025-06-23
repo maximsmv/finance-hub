@@ -1,29 +1,27 @@
 package com.advanced.personservice.service;
 
 import com.advanced.personservice.dto.UserDto;
-import com.advanced.personservice.mapper.AddressMapper;
-import com.advanced.personservice.mapper.IndividualMapper;
 import com.advanced.personservice.mapper.UserMapper;
 import com.advanced.personservice.model.Address;
-import com.advanced.personservice.model.Country;
 import com.advanced.personservice.model.Individual;
 import com.advanced.personservice.model.User;
 import com.advanced.personservice.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserService {
 
     private final UserRepository userRepository;
-
-    private final CountryService countryService;
 
     private final AddressService addressService;
 
@@ -31,63 +29,62 @@ public class UserService {
 
     private final UserMapper userMapper;
 
-    private final IndividualMapper individualMapper;
-    private final AddressMapper addressMapper;
-
-    @Transactional
     public UserDto createUser(UserDto userDto) {
-        Country country = countryService.getCountry(userDto.getAddress().getCountry());
-
-        Address address = addressService.createAddress(userDto.getAddress(), country);
+        Address address = addressService.createAddress(userDto.getAddress());
 
         User user = userMapper.toEntity(userDto);
         user.setAddress(address);
-        User savedUser = userRepository.save(user);
+        userRepository.save(user);
 
-        Individual individual = individualService.createIndividual(userDto.getIndividual(), savedUser);
+        Individual individual = individualService.createIndividual(userDto.getIndividual(), user);
 
-        UserDto result = userMapper.toDto(savedUser);
-
-        result.setAddress(addressMapper.toDto(address));
-        result.setIndividual(individualMapper.toDto(individual));
-
+        userRepository.flush();
+        UserDto result = userMapper.toDto(user);
+        result.setIndividual(individualService.toDto(individual));
         return result;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public UserDto getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        return userMapper.toDto(user);
+
+        UserDto result = userMapper.toDto(user);
+        result.setAddress(addressService.toDto(user.getAddress()));
+        result.setIndividual(individualService.toDto(individualService.getByUserId(user.getId())));
+        return result;
     }
 
-    //TODO Пагинация нужна, так не оставлять
-    @Transactional
-    public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toDto)
-                .toList();
-    }
+    public UserDto updateUser(
+            @NotNull UUID id,
+            @NotNull @Valid UserDto userDto) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+        userMapper.updateUserFromDto(userDto, user);
 
-//    @Transactional
-//    public UserDto updateUser(UUID id, UserDto userDto) {
-//        User user = userRepository.findById(id)
-//                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-//
-//        userMapper.updateEntityFromDto(userDto, user);
-//
-//        if (userDto.getAddress() != null && userDto.getAddress().getId() != null) {
-//            Address address = addressRepository.findById(userDto.getAddress().getId())
-//                    .orElseThrow(() -> new EntityNotFoundException("Address not found with id: " + userDto.getAddress().getId()));
-//            user.setAddress(address);
-//        } else {
-//            user.setAddress(null);
-//        }
-//
-//        return userMapper.toDto(user);
-//    }
+        Address address = addressService.updateAddress(userDto.getAddress());
+        Individual individual = individualService.updateIndividual(userDto.getIndividual(), user);
+
+        userRepository.save(user);
+        return mapUserToDto(user, address, individual);
+    }
 
     public void deleteUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+
+        if (Objects.nonNull(user.getAddress())) {
+            addressService.deleteById(user.getAddress().getId());
+        }
+
+        individualService.deleteByUserId(id);
         userRepository.deleteById(id);
+    }
+
+    private UserDto mapUserToDto(User user, Address address, Individual individual) {
+        UserDto result = userMapper.toDto(user);
+        result.setAddress(addressService.toDto(address));
+        result.setIndividual(individualService.toDto(individual));
+        return result;
     }
 }

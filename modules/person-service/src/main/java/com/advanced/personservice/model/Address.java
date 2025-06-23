@@ -25,11 +25,10 @@ public class Address {
     private UUID id;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime created;
 
     @UpdateTimestamp
-    @Column(nullable = false)
     private LocalDateTime updated;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -42,7 +41,7 @@ public class Address {
     @Column(length = 32)
     private String zipCode;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime archived;
 
     @Column(length = 32)

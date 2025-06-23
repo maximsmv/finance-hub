@@ -24,8 +24,24 @@ public class UserRestControllerV1 {
     }
 
     @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public UserDto getUserById(@NotNull @PathVariable UUID id) {
         return userService.getUserById(id);
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public UserDto updateUserById(
+            @NotNull @PathVariable UUID id,
+            @NotNull @Valid @RequestBody UserDto userDto
+    ) {
+        return userService.updateUser(id, userDto);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteUserById(@NotNull @PathVariable UUID id) {
+        userService.deleteUser(id);
     }
 
 }

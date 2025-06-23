@@ -11,7 +11,6 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"id"})
 public class UserDto {
 
     private UUID id;
@@ -24,9 +23,10 @@ public class UserDto {
     private String email;
 
     private LocalDateTime created;
+
     private LocalDateTime updated;
 
-    @Size(max = 32) // Не поместится кириллица в 32 символа
+    @Size(max = 32)
     private String firstName;
 
     @Size(max = 32)
