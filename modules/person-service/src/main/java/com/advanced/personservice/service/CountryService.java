@@ -6,6 +6,8 @@ import com.advanced.personservice.model.Country;
 import com.advanced.personservice.repository.CountryRepository;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,12 +16,14 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class CountryService {
+    private final Logger log = LoggerFactory.getLogger(CountryService.class);
 
     private final CountryRepository countryRepository;
 
     private final CountryMapper countryMapper;
 
     public Country getCountry(@Nullable CountryDto countryDto) {
+        log.debug("Get Country : {}", countryDto);
         if (Objects.isNull(countryDto)) {
             return null;
         }
@@ -32,6 +36,7 @@ public class CountryService {
     }
 
     public void create(CountryDto countryDto) {
+        log.debug("Create Country : {}", countryDto);
         countryRepository.save(countryMapper.toEntity(countryDto));
     }
 

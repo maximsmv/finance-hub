@@ -39,10 +39,28 @@ services:
     networks:
       - observability-network
 
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - loki
+    networks:
+      - observability-network
+
 networks:
   observability-network:
     driver: bridge
 
 volumes:
   postgres_data:
+    driver: local
+  grafana_data:
     driver: local

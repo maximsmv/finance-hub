@@ -3,6 +3,7 @@ package com.advanced.personservice.dto;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+@ToString
 @Getter
 @Setter
 @NoArgsConstructor

@@ -10,6 +10,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import java.util.UUID;
 @Transactional
 public class UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository userRepository;
 
     private final AddressService addressService;
@@ -30,6 +34,7 @@ public class UserService {
     private final UserMapper userMapper;
 
     public UserDto createUser(UserDto userDto) {
+        log.debug("Creating user: {}", userDto);
         Address address = addressService.createAddress(userDto.getAddress());
 
         User user = userMapper.toEntity(userDto);
