@@ -17,8 +17,31 @@ services:
       timeout: 5s
       retries: 5
 
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.98.0
+    command: [ "--config=/etc/otelcol/otel-collector-config.yml" ]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol/otel-collector-config.yml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      - loki
+    networks:
+      - observability-network
 
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    networks:
+      - observability-network
 
+networks:
+  observability-network:
+    driver: bridge
 
 volumes:
   postgres_data:

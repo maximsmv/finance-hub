@@ -26,3 +26,17 @@ spring:
     user: person-service
     password: password
     schemas: person
+
+otel:
+  resource:
+    attributes:
+      service.name: person-service
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+  logs:
+    exporter: otlp
+  metrics:
+    exporter: otlp
+  traces:
+    exporter: otlp
