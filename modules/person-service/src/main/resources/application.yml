@@ -27,6 +27,12 @@ spring:
     password: password
     schemas: person
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health,info
+
 otel:
   resource:
     attributes:

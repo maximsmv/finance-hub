@@ -36,23 +36,28 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.postgresql:postgresql'
 
-    // ------------------------------ UTIL ------------------------------
-    implementation 'org.mapstruct:mapstruct:1.6.3'
-    implementation 'commons-codec:commons-codec:1.17.1'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.0'
-
     // ------------------------------ OTel ------------------------------
     implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
+
+    // ------------------------------ METRIC ------------------------------
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // ------------------------------ LOG ------------------------------
     implementation 'com.github.loki4j:loki-logback-appender:1.5.0'
 
+    // ------------------------------ DEVTOOLS ------------------------------
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // ------------------------------ UTIL ------------------------------
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    implementation 'commons-codec:commons-codec:1.17.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
+    // ------------------------------ TEST ------------------------------
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'

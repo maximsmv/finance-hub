@@ -2,6 +2,7 @@ package com.advanced.personservice.controller;
 
 import com.advanced.personservice.dto.UserDto;
 import com.advanced.personservice.service.UserService;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class UserRestControllerV1 {
 
     private final UserService userService;
 
+    @WithSpan
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto createUser(@NotNull @Valid @RequestBody UserDto userDto) {

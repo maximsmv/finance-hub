@@ -39,6 +39,29 @@ services:
     networks:
       - observability-network
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.54.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_data:/prometheus
+    networks:
+      - observability-network
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo:2.5.0
+    ports:
+      - "3200:3200"
+    command: -config.file=/etc/tempo.yaml
+    volumes:
+      - ./tempo-config.yml:/etc/tempo.yaml
+      - ./tempo_data:/tmp/tempo
+    networks:
+      - observability-network
+
   grafana:
     container_name: grafana
     image: grafana/grafana:11.2.0

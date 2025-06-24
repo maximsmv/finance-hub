@@ -16,10 +16,12 @@ exporters:
     loglevel: debug
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
-  logging/traces:
-    loglevel: debug
-  logging/metrics:
-    loglevel: debug
+  otlp:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: "0.0.0.0:9091"
 
 extensions:
   health_check:
@@ -31,11 +33,11 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging/traces]
+      exporters: [otlp]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging/metrics]
+      exporters: [prometheus]
     logs:
       receivers: [otlp]
       processors: [batch]

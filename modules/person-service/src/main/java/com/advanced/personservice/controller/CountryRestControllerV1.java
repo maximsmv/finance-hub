@@ -2,6 +2,7 @@ package com.advanced.personservice.controller;
 
 import com.advanced.personservice.dto.CountryDto;
 import com.advanced.personservice.service.CountryService;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +18,14 @@ public class CountryRestControllerV1 {
 
     private final CountryService countryService;
 
+    @WithSpan
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<CountryDto> getUserById() {
         return countryService.getAll();
     }
 
+    @WithSpan
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public void createCountry(@NotNull @Valid @RequestBody CountryDto countryDto) {
