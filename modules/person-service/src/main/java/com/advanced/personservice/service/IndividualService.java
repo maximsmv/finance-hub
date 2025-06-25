@@ -1,6 +1,6 @@
 package com.advanced.personservice.service;
 
-import com.advanced.personservice.dto.IndividualDto;
+import com.advanced.contract.model.IndividualDto;
 import com.advanced.personservice.mapper.IndividualMapper;
 import com.advanced.personservice.model.Individual;
 import com.advanced.personservice.model.User;

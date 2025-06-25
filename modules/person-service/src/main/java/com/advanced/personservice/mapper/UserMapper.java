@@ -1,8 +1,7 @@
 package com.advanced.personservice.mapper;
 
-import com.advanced.personservice.dto.UserDto;
+import com.advanced.contract.model.UserDto;
 import com.advanced.personservice.model.User;
-import jakarta.validation.Valid;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;

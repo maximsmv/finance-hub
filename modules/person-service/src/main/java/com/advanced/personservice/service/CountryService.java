@@ -1,6 +1,6 @@
 package com.advanced.personservice.service;
 
-import com.advanced.personservice.dto.CountryDto;
+import com.advanced.contract.model.CountryDto;
 import com.advanced.personservice.mapper.CountryMapper;
 import com.advanced.personservice.model.Country;
 import com.advanced.personservice.repository.CountryRepository;
@@ -24,7 +24,7 @@ public class CountryService {
 
     public Country getCountry(@Nullable CountryDto countryDto) {
         log.debug("Get Country : {}", countryDto);
-        if (Objects.isNull(countryDto)) {
+        if (Objects.isNull(countryDto) || Objects.isNull(countryDto.getId())) {
             return null;
         }
 

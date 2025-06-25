@@ -1,6 +1,6 @@
 package com.advanced.personservice.mapper;
 
-import com.advanced.personservice.dto.CountryDto;
+import com.advanced.contract.model.CountryDto;
 import com.advanced.personservice.model.Country;
 import org.mapstruct.Mapper;
 

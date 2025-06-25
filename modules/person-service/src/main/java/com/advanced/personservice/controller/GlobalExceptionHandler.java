@@ -1,8 +1,9 @@
 package com.advanced.personservice.controller;
 
-import com.advanced.personservice.dto.ErrorResponse;
-import com.advanced.personservice.dto.ErrorValidationResponse;
-import com.advanced.personservice.dto.FieldErrorResponse;
+
+import com.advanced.contract.model.ErrorResponse;
+import com.advanced.contract.model.ErrorValidationResponse;
+import com.advanced.contract.model.FieldErrorResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +23,10 @@ public class GlobalExceptionHandler {
         List<FieldErrorResponse> fieldErrors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(error -> new FieldErrorResponse(error.getField(), error.getDefaultMessage()))
+                .map(error -> new FieldErrorResponse().field(error.getField()).message(error.getDefaultMessage()))
                 .toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST.value())
-                .body(new ErrorValidationResponse("Validation failed", HttpStatus.BAD_REQUEST.value(), fieldErrors));
+                .body(new ErrorValidationResponse().message("Validation failed").status(HttpStatus.BAD_REQUEST.value()).errors(fieldErrors));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -33,7 +34,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException  ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST.value())
-                .body(new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                .body(new ErrorResponse().error(ex.getMessage()).status(HttpStatus.BAD_REQUEST.value()));
     }
 
 }

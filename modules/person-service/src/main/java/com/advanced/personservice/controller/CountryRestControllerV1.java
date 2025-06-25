@@ -1,6 +1,6 @@
 package com.advanced.personservice.controller;
 
-import com.advanced.personservice.dto.CountryDto;
+import com.advanced.contract.model.CountryDto;
 import com.advanced.personservice.service.CountryService;
 import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
