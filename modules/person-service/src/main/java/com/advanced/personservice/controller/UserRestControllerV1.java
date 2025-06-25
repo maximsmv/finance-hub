@@ -2,6 +2,7 @@ package com.advanced.personservice.controller;
 
 import com.advanced.personservice.dto.UserDto;
 import com.advanced.personservice.service.UserService;
+import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,7 @@ public class UserRestControllerV1 {
 
     private final UserService userService;
 
+    @Timed
     @WithSpan
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -31,6 +33,8 @@ public class UserRestControllerV1 {
         return userService.getUserById(id);
     }
 
+    @Timed
+    @WithSpan
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public UserDto updateUserById(

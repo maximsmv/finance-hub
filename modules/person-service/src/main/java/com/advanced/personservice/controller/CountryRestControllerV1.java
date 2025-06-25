@@ -2,6 +2,7 @@ package com.advanced.personservice.controller;
 
 import com.advanced.personservice.dto.CountryDto;
 import com.advanced.personservice.service.CountryService;
+import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,7 @@ public class CountryRestControllerV1 {
 
     private final CountryService countryService;
 
+    @Timed
     @WithSpan
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -25,6 +27,7 @@ public class CountryRestControllerV1 {
         return countryService.getAll();
     }
 
+    @Timed
     @WithSpan
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
