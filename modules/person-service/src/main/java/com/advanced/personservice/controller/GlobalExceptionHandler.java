@@ -30,11 +30,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException  ex) {
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST.value())
-                .body(new ErrorResponse().error(ex.getMessage()).status(HttpStatus.BAD_REQUEST.value()));
+                .status(HttpStatus.NOT_FOUND.value())
+                .body(new ErrorResponse().error(ex.getMessage()).status(HttpStatus.NOT_FOUND.value()));
     }
 
 }

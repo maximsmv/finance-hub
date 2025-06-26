@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -52,9 +53,7 @@ public class AddressService {
                 .orElseThrow(EntityNotFoundException::new);
         addressMapper.updateAddressFromDto(addressDto, address);
 
-        if (Objects.nonNull(addressDto.getCountry())) {
-            address.setCountry(countryService.getCountry(addressDto.getCountry()));
-        }
+        address.setCountry(countryService.getCountry(addressDto.getCountry()));
 
         return addressRepository.save(address);
     }
@@ -63,7 +62,7 @@ public class AddressService {
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(EntityNotFoundException::new);
 
-        address.setArchived(LocalDateTime.now());
+        address.setArchived(OffsetDateTime.now());
         addressRepository.save(address);
     }
 

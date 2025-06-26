@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -31,10 +32,10 @@ public class User {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime created;
+    private OffsetDateTime created;
 
     @UpdateTimestamp
-    private LocalDateTime updated;
+    private OffsetDateTime updated;
 
     @Column(name = "first_name", length = 32)
     private String firstName;

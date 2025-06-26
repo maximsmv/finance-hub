@@ -44,9 +44,9 @@ public class UserRestControllerV1 {
         return userService.updateUser(id, userDto);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}/compensate")
     @ResponseStatus(HttpStatus.OK)
-    public void deleteUserById(@NotNull @PathVariable UUID id) {
+    public void compensateCreateUser(@NotNull @PathVariable UUID id) {
         userService.deleteUser(id);
     }
 

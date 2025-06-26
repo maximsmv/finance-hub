@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -53,7 +54,7 @@ public class IndividualService {
     public void deleteByUserId(UUID userId) {
         Individual individual = individualRepository.findByUserId(userId);
         individual.setUser(null);
-        individual.setArchivedAt(LocalDateTime.now());
+        individual.setArchivedAt(OffsetDateTime.now());
         individualRepository.save(individual);
     }
 

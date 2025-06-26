@@ -23,7 +23,7 @@ public class CountryRestControllerV1 {
     @WithSpan
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<CountryDto> getUserById() {
+    public List<CountryDto> getAllCountry() {
         return countryService.getAll();
     }
 

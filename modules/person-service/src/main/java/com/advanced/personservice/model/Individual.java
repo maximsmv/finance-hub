@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -32,10 +33,10 @@ public class Individual {
     private String phoneNumber;
 
     @Column(name = "verified_at", nullable = false)
-    private LocalDateTime verifiedAt;
+    private OffsetDateTime verifiedAt;
 
     @Column(name = "archived_at")
-    private LocalDateTime archivedAt;
+    private OffsetDateTime archivedAt;
 
     @Column(length = 32)
     private String status;

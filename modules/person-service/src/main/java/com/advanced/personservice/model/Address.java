@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 
@@ -26,10 +27,10 @@ public class Address {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime created;
+    private OffsetDateTime created;
 
     @UpdateTimestamp
-    private LocalDateTime updated;
+    private OffsetDateTime updated;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id")
@@ -42,7 +43,7 @@ public class Address {
     private String zipCode;
 
     @Column
-    private LocalDateTime archived;
+    private OffsetDateTime archived;
 
     @Column(length = 32)
     private String city;

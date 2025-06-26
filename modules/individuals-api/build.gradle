@@ -18,11 +18,14 @@ java {
 
 repositories {
 	mavenCentral()
+	mavenLocal()
 	maven { url 'https://repo.maven.apache.org/maven2' }
 }
 
 
 dependencies {
+	implementation 'com.advanced:api-contract:1.0.0'
+
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'

@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "countries", schema = "person")
@@ -24,11 +25,11 @@ public class Country {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime created;
+    private OffsetDateTime created;
 
     @UpdateTimestamp
     @Column
-    private LocalDateTime updated;
+    private OffsetDateTime updated;
 
     @Column(length = 32)
     private String name;
