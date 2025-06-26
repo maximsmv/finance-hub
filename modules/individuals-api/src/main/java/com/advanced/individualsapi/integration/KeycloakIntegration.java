@@ -6,6 +6,7 @@ import com.advanced.individualsapi.exception.InvalidCredentialsException;
 import com.advanced.individualsapi.exception.InvalidRefreshTokenException;
 import com.advanced.individualsapi.exception.UserAlreadyExistsException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -59,6 +60,7 @@ public class KeycloakIntegration {
         this.userInfoEndpoint = userInfoEndpoint;
     }
 
+    @WithSpan
     public Mono<AuthResponse> register(RegistrationRequest request) {
         return getAdminAccessToken()
                 .flatMap(adminToken -> checkUserExists(adminToken, request.email())
@@ -71,6 +73,7 @@ public class KeycloakIntegration {
                         }));
     }
 
+    @WithSpan
     protected Mono<Boolean> checkUserExists(String adminToken, String email) {
         return webClient.get()
                 .uri(adminEndpoint + "/users?email=" + email)
@@ -80,6 +83,7 @@ public class KeycloakIntegration {
                 .map(users -> users.length != 0);
     }
 
+    @WithSpan
     private Mono<String> createUser(String adminToken, RegistrationRequest request) {
         UserRepresentation user = getUserRepresentation(request);
         return webClient.post()
@@ -93,6 +97,7 @@ public class KeycloakIntegration {
                         .getPath().replaceAll(".*/([^/]+)$", "$1"));
     }
 
+    @WithSpan
     public Mono<AuthResponse> login(LoginRequest request) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -120,6 +125,7 @@ public class KeycloakIntegration {
                 ));
     }
 
+    @WithSpan
     public Mono<AuthResponse> refreshToken(RefreshTokenRequest request) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "refresh_token");
@@ -146,6 +152,7 @@ public class KeycloakIntegration {
                 ));
     }
 
+    @WithSpan
     public Mono<UserResponse> getUserInfo(String accessToken) {
         return webClient.get()
                 .uri(userInfoEndpoint)

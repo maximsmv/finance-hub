@@ -6,6 +6,8 @@ import com.advanced.individualsapi.dto.*;
 import com.advanced.individualsapi.exception.PasswordMismatchException;
 import com.advanced.individualsapi.integration.KeycloakIntegration;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -14,6 +16,8 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final KeycloakIntegration keycloakIntegration;
 
@@ -28,14 +32,14 @@ public class UserService {
                                 .onErrorResume(keycloakError ->
                                         userRestApi.compensateCreateUser(Objects.requireNonNull(createdUser.getId()))
                                                 .onErrorResume(compensateError -> {
-//                                                    log.error("Ошибка при компенсации создания пользователя", compensateError);
+                                                    log.error("Ошибка при компенсации создания пользователя: {}", compensateError.getMessage());
                                                     return Mono.empty();
                                                 })
                                                 .then(Mono.error(keycloakError))
                                 )
                 )
                 .onErrorResume(createUserError -> {
-//                    log.error("Не удалось создать пользователя в person-service", createUserError);
+                    log.error("Не удалось создать пользователя в person-service: {}", createUserError.getMessage());
                     return Mono.error(createUserError);
                 });
     }
