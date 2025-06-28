@@ -1,18 +1,23 @@
 package com.advanced.individualsapi.service;
 
+import com.advanced.contract.api.UserRestControllerV1Api;
+import com.advanced.contract.model.UserDto;
 import com.advanced.individualsapi.dto.*;
 import com.advanced.individualsapi.exception.*;
 import com.advanced.individualsapi.integration.KeycloakIntegration;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -22,6 +27,9 @@ class UserServiceTest {
 
     @Mock
     private KeycloakIntegration keycloakIntegration;
+
+    @Mock
+    private UserRestControllerV1Api userRestApi;
 
     @InjectMocks
     private UserService userService;
@@ -34,7 +42,10 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        registrationRequest = new RegistrationRequest("test@example.com", "password", "password");
+        UserDto userDto = new UserDto();
+        userDto.setEmail("test@example.com");
+
+        registrationRequest = new RegistrationRequest(userDto, "password", "password");
         loginRequest = new LoginRequest("test@example.com", "password");
         refreshTokenRequest = new RefreshTokenRequest("refresh-token");
         authResponse = new AuthResponse("access-token", 300, "refresh-token", "Bearer");
@@ -43,6 +54,9 @@ class UserServiceTest {
 
     @Test
     void register_Success_ReturnsAuthResponse() {
+        UserDto createdUser = new UserDto();
+        createdUser.setEmail("test@example.com");
+        when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(createdUser));
         when(keycloakIntegration.register(any(RegistrationRequest.class))).thenReturn(Mono.just(authResponse));
 
         Mono<AuthResponse> result = userService.register(registrationRequest);
@@ -56,7 +70,7 @@ class UserServiceTest {
 
     @Test
     void register_PasswordMismatch_ThrowsPasswordMismatchException() {
-        RegistrationRequest invalidRequest = new RegistrationRequest("test@example.com", "password", "different");
+        RegistrationRequest invalidRequest = new RegistrationRequest(registrationRequest.user(), "password", "different");
 
         Mono<AuthResponse> result = userService.register(invalidRequest);
 
@@ -65,12 +79,18 @@ class UserServiceTest {
                 .verify();
 
         verify(keycloakIntegration, never()).register(any());
+        verify(userRestApi, never()).createUser(any());
     }
 
     @Test
     void register_UserAlreadyExists_ThrowsUserAlreadyExistsException() {
+        UserDto createdUser = new UserDto();
+        createdUser.setId(UUID.randomUUID());
+        createdUser.setEmail("test@example.com");
+        when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(createdUser));
         when(keycloakIntegration.register(any(RegistrationRequest.class)))
                 .thenReturn(Mono.error(new UserAlreadyExistsException()));
+        when(userRestApi.compensateCreateUser(any())).thenReturn(Mono.empty());
 
         Mono<AuthResponse> result = userService.register(registrationRequest);
 
@@ -79,6 +99,21 @@ class UserServiceTest {
                 .verify();
 
         verify(keycloakIntegration).register(registrationRequest);
+        Assertions.assertNotNull(createdUser.getId());
+        verify(userRestApi).compensateCreateUser(createdUser.getId());
+    }
+
+    @Test
+    void register_PersonServiceFails_ThrowsPersonServiceIntegrationException() {
+        when(userRestApi.createUser(any())).thenReturn(
+                Mono.error(new WebClientResponseException(400, "Bad Request", null, "{\"message\":\"Validation failed\"}".getBytes(), null))
+        );
+
+        Mono<AuthResponse> result = userService.register(registrationRequest);
+
+        StepVerifier.create(result)
+                .expectError(PersonServiceIntegrationException.class)
+                .verify();
     }
 
     @Test
