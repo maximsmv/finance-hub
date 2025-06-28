@@ -28,6 +28,7 @@ dependencies {
 
     api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.0'
 }
 
 
@@ -42,7 +43,8 @@ openApiGenerate {
             "useJakartaEe": "true",
             "dateLibrary": "java8",
             "openApiNullable": "false",
-            "useTags": "true"
+            "useTags": "true",
+            "useBeanValidation": "true"
     ]
 }
 

@@ -1,12 +1,12 @@
 package com.advanced.individualsapi.dto;
 
-import jakarta.validation.constraints.Email;
+import com.advanced.contract.model.UserDto;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 public record RegistrationRequest(
-        @NotBlank(message = "Email не может быть пустым")
-        @Email(message = "Некорректный формат email")
-        String email,
+        @Valid
+        UserDto user,
         @NotBlank(message = "Пароль не может быть пустым")
         String password,
         @NotBlank(message = "Подтверждение пароля не может быть пустым")

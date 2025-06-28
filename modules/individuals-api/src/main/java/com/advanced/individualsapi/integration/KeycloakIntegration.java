@@ -63,13 +63,13 @@ public class KeycloakIntegration {
     @WithSpan
     public Mono<AuthResponse> register(RegistrationRequest request) {
         return getAdminAccessToken()
-                .flatMap(adminToken -> checkUserExists(adminToken, request.email())
+                .flatMap(adminToken -> checkUserExists(adminToken, request.user().getEmail())
                         .flatMap(isEmpty -> {
                             if (isEmpty) {
                                 return Mono.error(new UserAlreadyExistsException());
                             }
                             return createUser(adminToken, request)
-                                    .then(login(new LoginRequest(request.email(), request.password())));
+                                    .then(login(new LoginRequest(request.user().getEmail(), request.password())));
                         }));
     }
 
@@ -199,8 +199,8 @@ public class KeycloakIntegration {
 
     private static UserRepresentation getUserRepresentation(RegistrationRequest request) {
         return new UserRepresentation(
-                request.email(),
-                request.email(),
+                request.user().getEmail(),
+                request.user().getEmail(),
                 true,
                 Collections.singletonList(
                         new UserRepresentation.CredentialRepresentation(

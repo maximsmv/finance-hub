@@ -44,6 +44,8 @@ public class UserRestControllerV1 {
         return userService.updateUser(id, userDto);
     }
 
+    @Timed
+    @WithSpan
     @DeleteMapping("/{id}/compensate")
     @ResponseStatus(HttpStatus.OK)
     public void compensateCreateUser(@NotNull @PathVariable UUID id) {

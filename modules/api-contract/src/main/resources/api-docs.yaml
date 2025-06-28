@@ -226,7 +226,7 @@ components:
           $ref: "#/components/schemas/CountryDto"
         address:
           type: string
-        zipCode:
+        zip_code:
           type: string
         archived:
           type: string
@@ -251,43 +251,47 @@ components:
           type: string
     IndividualDto:
       type: object
+      required:
+        - verified_at
       properties:
         id:
           type: string
           format: uuid
-        passportNumber:
+        passport_number:
           type: string
-        phoneNumber:
+        phone_number:
           type: string
-        email:
-          type: string
-        verifiedAt:
+        verified_at:
           type: string
           format: date-time
-        archivedAt:
+        archived_at:
           type: string
           format: date-time
         status:
           type: string
     UserDto:
       type: object
+      required:
+        - email
       properties:
         id:
           type: string
           format: uuid
-        secretKey:
+        secret_key:
           type: string
         email:
           type: string
+          pattern: '^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$'
+          minLength: 1
         created:
           type: string
           format: date-time
         updated:
           type: string
           format: date-time
-        firstName:
+        first_name:
           type: string
-        lastName:
+        last_name:
           type: string
         filled:
           type: boolean

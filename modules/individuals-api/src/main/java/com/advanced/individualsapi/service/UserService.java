@@ -1,14 +1,17 @@
 package com.advanced.individualsapi.service;
 
 import com.advanced.contract.api.UserRestControllerV1Api;
-import com.advanced.contract.model.UserDto;
+import com.advanced.contract.model.ErrorResponse;
 import com.advanced.individualsapi.dto.*;
 import com.advanced.individualsapi.exception.PasswordMismatchException;
+import com.advanced.individualsapi.exception.PersonServiceIntegrationException;
 import com.advanced.individualsapi.integration.KeycloakIntegration;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
@@ -26,28 +29,22 @@ public class UserService {
     public Mono<AuthResponse> register(RegistrationRequest request) {
         validate(request);
 
-        return userRestApi.createUser(mapUserDto(request))
+        return userRestApi.createUser(request.user())
+                .onErrorResume(WebClientResponseException.class, ex -> Mono.error(new PersonServiceIntegrationException(
+                        ex.getStatusCode(), ex.getResponseBodyAsString()
+                )))
                 .flatMap(createdUser ->
                         keycloakIntegration.register(request)
-                                .onErrorResume(keycloakError ->
-                                        userRestApi.compensateCreateUser(Objects.requireNonNull(createdUser.getId()))
-                                                .onErrorResume(compensateError -> {
-                                                    log.error("Ошибка при компенсации создания пользователя: {}", compensateError.getMessage());
-                                                    return Mono.empty();
-                                                })
-                                                .then(Mono.error(keycloakError))
-                                )
-                )
-                .onErrorResume(createUserError -> {
-                    log.error("Не удалось создать пользователя в person-service: {}", createUserError.getMessage());
-                    return Mono.error(createUserError);
-                });
-    }
-
-    private UserDto mapUserDto(RegistrationRequest request) {
-        UserDto user = new UserDto();
-        user.setEmail(request.email());
-        return user;
+                                .onErrorResume(keycloakError -> {
+                                    log.warn("Выполнение компенсирующего действия по удалению пользователя с id = {}", createdUser.getId());
+                                    return userRestApi.compensateCreateUser(Objects.requireNonNull(createdUser.getId()))
+                                            .onErrorResume(compensateError -> {
+                                                log.error("Ошибка при компенсации создания пользователя: {}", compensateError.getMessage());
+                                                return Mono.empty();
+                                            })
+                                            .then(Mono.error(keycloakError));
+                                })
+                );
     }
 
     public Mono<AuthResponse> login(LoginRequest request) {

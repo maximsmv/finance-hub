@@ -11,7 +11,7 @@ public class PersonServiceApiConfiguration {
     @Bean
     public UserRestControllerV1Api userApi() {
         ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath("http://localhost:8081");
+        apiClient.setBasePath("http://localhost:8082");
         return new UserRestControllerV1Api(apiClient);
     }
 

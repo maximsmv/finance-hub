@@ -1,6 +1,6 @@
-
-
 spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   application:
     name: individuals-api
   security:
