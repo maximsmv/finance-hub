@@ -65,7 +65,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse().error("Unexpected error occurred").status(HttpStatus.INTERNAL_SERVER_ERROR.value())));
+                .body(new ErrorResponse().error("Unexpected error occurred: " + ex.getMessage()).status(HttpStatus.INTERNAL_SERVER_ERROR.value())));
     }
 
 }

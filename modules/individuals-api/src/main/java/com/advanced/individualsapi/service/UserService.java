@@ -1,7 +1,6 @@
 package com.advanced.individualsapi.service;
 
 import com.advanced.contract.api.UserRestControllerV1Api;
-import com.advanced.contract.model.ErrorResponse;
 import com.advanced.individualsapi.dto.*;
 import com.advanced.individualsapi.exception.PasswordMismatchException;
 import com.advanced.individualsapi.exception.PersonServiceIntegrationException;
@@ -11,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
@@ -27,9 +25,8 @@ public class UserService {
     private final UserRestControllerV1Api userRestApi;
 
     public Mono<AuthResponse> register(RegistrationRequest request) {
-        validate(request);
-
-        return userRestApi.createUser(request.user())
+        return validate(request)
+                .then(Mono.defer(() -> userRestApi.createUser(request.user())))
                 .onErrorResume(WebClientResponseException.class, ex -> Mono.error(new PersonServiceIntegrationException(
                         ex.getStatusCode(), ex.getResponseBodyAsString()
                 )))
@@ -59,9 +56,10 @@ public class UserService {
         return keycloakIntegration.getUserInfo(token);
     }
 
-    private void validate(RegistrationRequest request) {
+    private Mono<Void> validate(RegistrationRequest request) {
         if (!request.password().equals(request.confirmPassword())) {
-            throw new PasswordMismatchException();
+            return Mono.error(new PasswordMismatchException());
         }
+        return Mono.empty();
     }
 }

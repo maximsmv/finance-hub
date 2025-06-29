@@ -52,3 +52,6 @@ otel:
     exporter: otlp
   traces:
     exporter: otlp
+
+person-service:
+  base-url: http://localhost:8082

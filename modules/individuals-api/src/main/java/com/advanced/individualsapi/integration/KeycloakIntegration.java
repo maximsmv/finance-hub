@@ -6,17 +6,25 @@ import com.advanced.individualsapi.exception.InvalidCredentialsException;
 import com.advanced.individualsapi.exception.InvalidRefreshTokenException;
 import com.advanced.individualsapi.exception.UserAlreadyExistsException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +47,29 @@ public class KeycloakIntegration {
     private final String tokenEndpoint;
 
     private final String userInfoEndpoint;
+
+    private static final String ADMIN_TOKEN_KEY = "admin-token";
+
+    private final Cache<String, CachedToken> tokenCache = Caffeine.newBuilder()
+            .expireAfter(new Expiry<String, CachedToken>() {
+
+                @Override
+                public long expireAfterCreate(@NonNull String key, @NonNull CachedToken value, long currentTime) {
+                    Duration ttl = Duration.between(Instant.now(), value.expiry());
+                    return ttl.toNanos();
+                }
+
+                @Override
+                public long expireAfterUpdate(@NonNull String key,@NonNull CachedToken value, long currentTime, long currentDuration) {
+                    return currentDuration;
+                }
+
+                @Override
+                public long expireAfterRead(@NonNull String key,@NonNull CachedToken value, long currentTime, long currentDuration) {
+                    return currentDuration;
+                }
+            })
+            .build();
 
     public KeycloakIntegration(
             @Qualifier("keycloakWebClient") WebClient webClient,
@@ -63,24 +94,16 @@ public class KeycloakIntegration {
     @WithSpan
     public Mono<AuthResponse> register(RegistrationRequest request) {
         return getAdminAccessToken()
-                .flatMap(adminToken -> checkUserExists(adminToken, request.user().getEmail())
-                        .flatMap(isEmpty -> {
-                            if (isEmpty) {
-                                return Mono.error(new UserAlreadyExistsException());
-                            }
-                            return createUser(adminToken, request)
-                                    .then(login(new LoginRequest(request.user().getEmail(), request.password())));
-                        }));
-    }
-
-    @WithSpan
-    protected Mono<Boolean> checkUserExists(String adminToken, String email) {
-        return webClient.get()
-                .uri(adminEndpoint + "/users?email=" + email)
-                .header("Authorization", "Bearer " + adminToken)
-                .retrieve()
-                .bodyToMono(UserRepresentation[].class)
-                .map(users -> users.length != 0);
+                .flatMap(adminToken ->
+                        createUser(adminToken, request)
+                                .onErrorResume(WebClientResponseException.class, ex -> {
+                                    if (ex.getStatusCode() == HttpStatus.CONFLICT || ex.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                                        return Mono.error(new UserAlreadyExistsException());
+                                    }
+                                    return Mono.error(new RuntimeException("Keycloak error: " + ex.getMessage()));
+                                })
+                                .then(login(new LoginRequest(request.user().getEmail(), request.password())))
+                );
     }
 
     @WithSpan
@@ -177,8 +200,13 @@ public class KeycloakIntegration {
                             ));
                 });
     }
-    //TODO: Кэшировать токен по expired лайфу
-    protected Mono<String> getAdminAccessToken() {
+
+    private Mono<String> getAdminAccessToken() {
+        CachedToken cached = tokenCache.getIfPresent(ADMIN_TOKEN_KEY);
+        if (Objects.nonNull(cached) && Instant.now().isBefore(cached.expiry())) {
+            return Mono.just(cached.token());
+        }
+
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", adminClientId);
@@ -194,7 +222,11 @@ public class KeycloakIntegration {
                 .onStatus(HttpStatusCode::is5xxServerError, response -> response.bodyToMono(String.class)
                         .flatMap(error -> Mono.error(new RuntimeException("Keycloak server error: " + error))))
                 .bodyToMono(KeycloakTokenResponse.class)
-                .map(KeycloakTokenResponse::access_token);
+                .map(tokenResponse -> {
+                    Instant expiry = Instant.now().plusSeconds(tokenResponse.expires_in());
+                    tokenCache.put(ADMIN_TOKEN_KEY, new CachedToken(tokenResponse.access_token(), expiry));
+                    return tokenResponse.access_token();
+                });
     }
 
     private static UserRepresentation getUserRepresentation(RegistrationRequest request) {
@@ -243,3 +275,7 @@ record UserRepresentation(
             String value
     ) {}
 }
+
+record CachedToken(
+        String token, Instant expiry
+) {}

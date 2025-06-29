@@ -1,5 +1,8 @@
 package com.advanced.individualsapi.integration;
 
+import com.advanced.contract.api.UserRestControllerV1Api;
+import com.advanced.contract.model.ErrorResponse;
+import com.advanced.contract.model.UserDto;
 import com.advanced.individualsapi.dto.*;
 import com.advanced.individualsapi.exception.*;
 import org.junit.jupiter.api.AfterAll;
@@ -8,8 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -25,18 +29,26 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(properties = {"server.port=0"})
-@TestConfiguration("WebTestClientConfiguration.class")
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
+@AutoConfigureWebTestClient
 @Testcontainers
 class KeycloakIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @MockBean
+    private UserRestControllerV1Api userRestApi;
 
     private static final Network network = Network.newNetwork();
 
@@ -100,7 +112,7 @@ class KeycloakIntegrationTest {
     @Test
     void login_Success_ReturnsAuthResponse() {
         webTestClient.post()
-                .uri("/v1/auth/login")
+                .uri("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(loginRequest)
                 .exchange()
@@ -120,24 +132,28 @@ class KeycloakIntegrationTest {
         InvalidCredentialsException expectedException = new InvalidCredentialsException();
 
         webTestClient.post()
-                .uri("/v1/auth/login")
+                .uri("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectBody(ErrorResponse.class)
                 .value(errorResponse -> {
-                    assertEquals(expectedException.getMessage(), errorResponse.error());
-                    assertEquals(expectedException.getStatus(), errorResponse.status());
+                    assertEquals(expectedException.getMessage(), errorResponse.getError());
+                    assertEquals(expectedException.getStatus(), errorResponse.getStatus());
                 });
     }
 
     @Test
     void register_Success_ReturnsAuthResponseAndCreatesUser() {
-        RegistrationRequest registrationRequest = new RegistrationRequest("test@example.com", "password", "password");
+        UserDto user = new UserDto();
+        user.setEmail("test@example.com");
+        RegistrationRequest registrationRequest = new RegistrationRequest(user, "password", "password");
+
+        when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(user));
 
         webTestClient.post()
-                .uri("/v1/auth/registration")
+                .uri("/api/v1/auth/registration")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(registrationRequest)
                 .exchange()
@@ -153,42 +169,50 @@ class KeycloakIntegrationTest {
 
     @Test
     void register_ExistingUser_ThrowsUserAlreadyExistsException() {
-        RegistrationRequest request = new RegistrationRequest(loginRequest.email(), loginRequest.password(), loginRequest.password());
+        UserDto user = new UserDto();
+        user.setEmail(loginRequest.email());
+        user.setId(UUID.randomUUID());
+        RegistrationRequest request = new RegistrationRequest(user, loginRequest.password(), loginRequest.password());
+        when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(user));
+        when(userRestApi.compensateCreateUser(any())).thenReturn(Mono.empty());
+
         UserAlreadyExistsException expectedException = new UserAlreadyExistsException();
         webTestClient.post()
-                .uri("/v1/auth/registration")
+                .uri("/api/v1/auth/registration")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.CONFLICT)
                 .expectBody(ErrorResponse.class)
                 .value(errorResponse -> {
-                    assertEquals(expectedException.getMessage(), errorResponse.error());
-                    assertEquals(expectedException.getStatus(), errorResponse.status());
+                    assertEquals(expectedException.getMessage(), errorResponse.getError());
+                    assertEquals(expectedException.getStatus(), errorResponse.getStatus());
                 });
     }
 
     @Test
     void register_PasswordMismatch_ReturnsBadRequest() {
-        RegistrationRequest registrationPasswordMismatchRequest = new RegistrationRequest("wrongtest@example.com", "password", "wrongpassword");
+        UserDto user = new UserDto();
+        user.setEmail("wrongtest@example.com");
+        RegistrationRequest registrationPasswordMismatchRequest = new RegistrationRequest(user, "password", "wrongpassword");
         PasswordMismatchException expectedException = new PasswordMismatchException();
         webTestClient.post()
-                .uri("/v1/auth/registration")
+                .uri("/api/v1/auth/registration")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(registrationPasswordMismatchRequest)
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(ErrorResponse.class)
                 .value(errorResponse -> {
-                    assertEquals(expectedException.getMessage(), errorResponse.error());
-                    assertEquals(expectedException.getStatus(), errorResponse.status());
+                    assertEquals(expectedException.getMessage(), errorResponse.getError());
+                    assertEquals(expectedException.getStatus(), errorResponse.getStatus());
                 });
     }
 
     @Test
     void refreshToken_Success_ReturnsNewAuthResponse() {
         Mono<AuthResponse> authResponseMono = webTestClient.post()
-                .uri("/v1/auth/login")
+                .uri("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(loginRequest)
                 .exchange()
@@ -200,7 +224,7 @@ class KeycloakIntegrationTest {
         Mono<AuthResponse> refreshedResponseMono = authResponseMono.flatMap(authResponse -> {
             RefreshTokenRequest refreshTokenRequest = new RefreshTokenRequest(authResponse.refreshToken());
             return webTestClient.post()
-                    .uri("/v1/auth/refresh-token")
+                    .uri("/api/v1/auth/refresh-token")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(refreshTokenRequest)
                     .exchange()
@@ -224,22 +248,22 @@ class KeycloakIntegrationTest {
         InvalidRefreshTokenException expectedException = new InvalidRefreshTokenException();
 
         webTestClient.post()
-                .uri("/v1/auth/refresh-token")
+                .uri("/api/v1/auth/refresh-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectBody(ErrorResponse.class)
                 .value(errorResponse -> {
-                    assertEquals(expectedException.getMessage(), errorResponse.error());
-                    assertEquals(expectedException.getStatus(), errorResponse.status());
+                    assertEquals(expectedException.getMessage(), errorResponse.getError());
+                    assertEquals(expectedException.getStatus(), errorResponse.getStatus());
                 });
     }
 
     @Test
     void getUserInfo_Success_ReturnsUserResponse() {
         Mono<AuthResponse> authResponseMono = webTestClient.post()
-                .uri("/v1/auth/login")
+                .uri("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(loginRequest)
                 .exchange()
@@ -249,7 +273,7 @@ class KeycloakIntegrationTest {
                 .single();
 
         Mono<UserResponse> userInfoResponseMono = authResponseMono.flatMap(authResponse -> webTestClient.get()
-                .uri("/v1/auth/me")
+                .uri("/api/v1/auth/me")
                 .header("Authorization", authResponse.tokenType() + " " + authResponse.accessToken())
                 .exchange()
                 .expectStatus().isOk()
@@ -272,14 +296,14 @@ class KeycloakIntegrationTest {
         String invalidAccessToken = "Bearer invalid-access-token";
         InvalidAccessTokenException expectedException = new InvalidAccessTokenException();
         webTestClient.get()
-                .uri("/v1/auth/me")
+                .uri("/api/v1/auth/me")
                 .header("Authorization", invalidAccessToken)
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectBody(ErrorResponse.class)
                 .value(errorResponse -> {
-                    assertEquals(expectedException.getMessage(), errorResponse.error());
-                    assertEquals(expectedException.getStatus(), errorResponse.status());
+                    assertEquals(expectedException.getMessage(), errorResponse.getError());
+                    assertEquals(expectedException.getStatus(), errorResponse.getStatus());
                 });
     }
 }
