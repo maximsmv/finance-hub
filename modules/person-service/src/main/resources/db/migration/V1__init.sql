@@ -18,7 +18,7 @@ CREATE TABLE person.addresses (
     country_id INTEGER REFERENCES person.countries (id),
     address VARCHAR(128),
     zip_code VARCHAR(64),
-    archived TIMESTAMP NOT NULL,
+    archived TIMESTAMP,
     city VARCHAR(64),
     state VARCHAR(64)
 );

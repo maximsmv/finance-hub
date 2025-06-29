@@ -55,8 +55,9 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
         UserDto result = userMapper.toDto(user);
-        result.setAddress(addressService.toDto(user.getAddress()));
-        result.setIndividual(individualService.toDto(individualService.getByUserId(user.getId())));
+        result.setAddress(Objects.nonNull(user.getAddress()) ? addressService.toDto(user.getAddress()) : null);
+        Individual individual = individualService.getByUserId(user.getId());
+        result.setIndividual(Objects.nonNull(individual) ? individualService.toDto(individual) : null);
         return result;
     }
 
