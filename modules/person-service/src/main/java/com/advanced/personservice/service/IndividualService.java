@@ -51,6 +51,7 @@ public class IndividualService {
         return individualRepository.save(individual);
     }
 
+    @Transactional
     public void deleteByUserId(UUID userId) {
         Individual individual = individualRepository.findByUserId(userId);
         individual.setUser(null);

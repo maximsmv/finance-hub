@@ -27,6 +27,7 @@ public class AddressService {
 
     private final AddressMapper addressMapper;
 
+    @Transactional
     public Address createAddress(AddressDto addressDto) {
         if (Objects.isNull(addressDto)) {
             return null;
@@ -40,6 +41,7 @@ public class AddressService {
         return address;
     }
 
+    @Transactional
     public Address updateAddress(AddressDto addressDto) {
         if (Objects.isNull(addressDto)) {
             return null;
@@ -58,6 +60,7 @@ public class AddressService {
         return addressRepository.save(address);
     }
 
+    @Transactional
     public void deleteById(@NotNull UUID addressId) {
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(EntityNotFoundException::new);

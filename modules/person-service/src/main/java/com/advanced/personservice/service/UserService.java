@@ -62,6 +62,7 @@ public class UserService {
         return result;
     }
 
+    @Transactional
     public UserDto updateUser(
             @NotNull UUID id,
             @NotNull @Valid UserDto userDto) {

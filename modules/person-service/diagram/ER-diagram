@@ -45,7 +45,6 @@ package "person" {
     --
     passport_number: VARCHAR(32)
     phone_number: VARCHAR(32)
-    email: VARCHAR(32)
     verified_at: TIMESTAMP
     archived_at: TIMESTAMP
     status: VARCHAR(32)
