@@ -1,4 +1,7 @@
 spring:
+  config:
+    activate:
+      on-profile: dev
   jackson:
     property-naming-strategy: SNAKE_CASE
   application:
@@ -11,7 +14,7 @@ spring:
           jwk-set-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
 keycloak:
   realm: my-realm
-  auth-server-url: http://keycloak-postgres:8081
+  auth-server-url: http://localhost:8081
   resource: individuals-api
   credentials:
     secret: miwEW85QXAd55svjd2fIbJhvJEWaOpeD
@@ -45,7 +48,7 @@ otel:
       service.name: individuals-api
   exporter:
     otlp:
-      endpoint: http://otel-collector:4318
+      endpoint: http://localhost:4318
   logs:
     exporter: otlp
   metrics:

@@ -33,6 +33,7 @@ public class UserService {
 
     private final UserMapper userMapper;
 
+    @Transactional
     public UserDto createUser(UserDto userDto) {
         log.debug("Creating user: {}", userDto);
         Address address = addressService.createAddress(userDto.getAddress());
@@ -75,6 +76,7 @@ public class UserService {
         return mapUserToDto(user, address, individual);
     }
 
+    @Transactional
     public void deleteUser(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));

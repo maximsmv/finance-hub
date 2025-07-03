@@ -2,10 +2,13 @@ server:
   port: 8082
 
 spring:
+  config:
+    activate:
+      on-profile: dev
   application:
     name: person-service
   datasource:
-    url: jdbc:postgresql://person-service-postgres:5432/db
+    url: jdbc:postgresql://localhost:5432/db
     username: person-service
     password: password
     driver-class-name: org.postgresql.Driver
@@ -25,12 +28,13 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-    url: jdbc:postgresql://person-service-postgres:5432/db
+    url: jdbc:postgresql://localhost:5432/db
     user: person-service
     password: password
     schemas: person
   jackson:
     property-naming-strategy: SNAKE_CASE
+
 management:
   endpoints:
     web:
@@ -49,7 +53,7 @@ otel:
       service.name: person-service
   exporter:
     otlp:
-      endpoint: http://otel-collector:4318
+      endpoint: http://localhost:4318
   logs:
     exporter: otlp
   metrics:

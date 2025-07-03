@@ -1,27 +1,32 @@
 @startuml
 package "person-service" {
-    [REST Controller]
+    [UserRestControllerV1]
+    [CountryRestControllerV1]
+    [GlobalExceptionHandler (@ControllerAdvice)]
     [UserService]
     [AddressService]
     [IndividualService]
-    [CountriesService]
+    [CountryService]
     [UserRepository]
     [AddressRepository]
     [IndividualRepository]
-    [CountriesRepository]
+    [CountryRepository]
     [ActuatorEndpoints]
     [OpenTelemetry]
-}
-
-package "Infrastructure" {
-    [PostgreSQL]
+    [Logback (OpenTelemetryAppender)]
     [JPA]
     [Hibernate Envers]
 }
 
+package "Infrastructure" {
+    [PostgreSQL]
+}
+
 package "Monitoring" {
+    [OTel Collector]
     [Prometheus]
-    [Jaeger]
+    [Loki]
+    [Tempo]
     [Grafana]
 }
 
@@ -35,31 +40,37 @@ package "Testing" {
     [Mockito]
 }
 
-[REST Controller] --> [UserService] : Обрабатывает HTTP запросы
+[CountryRestControllerV1] --> [CountryService] : Обрабатывает HTTP запросы
+[UserRestControllerV1] --> [UserService] : Обрабатывает HTTP запросы
 [UserService] --> [UserRepository] : Управление пользователями
 [UserService] --> [AddressService] : Координация адресов
 [UserService] --> [IndividualService] : Координация индивидуальных данных
-[UserService] --> [CountriesService] : Координация стран
+[UserService] --> [CountryService] : Координация стран
 [AddressService] --> [AddressRepository] : Управление адресами
 [IndividualService] --> [IndividualRepository] : Управление индивидуальными данными
-[CountriesService] --> [CountriesRepository] : Управление странами
+[CountryService] --> [CountryRepository] : Управление странами
 
 [UserRepository] ..> [JPA] : Доступ к данным
 [AddressRepository] ..> [JPA] : Доступ к данным
 [IndividualRepository] ..> [JPA] : Доступ к данным
-[CountriesRepository] ..> [JPA] : Доступ к данным
+[CountryRepository] ..> [JPA] : Доступ к данным
 [UserRepository] ..> [Hibernate Envers] : Аудит изменений
 [AddressRepository] ..> [Hibernate Envers] : Аудит изменений
 [IndividualRepository] ..> [Hibernate Envers] : Аудит изменений
-[CountriesRepository] ..> [Hibernate Envers] : Аудит изменений
+[CountryRepository] ..> [Hibernate Envers] : Аудит изменений
 [JPA] --> [PostgreSQL] : Хранилище данных
 [Hibernate Envers] --> [JPA] : Использует для записи аудита
 
 [UserService] --> [ActuatorEndpoints] : Предоставление метрик
 [UserService] --> [OpenTelemetry] : Трассировка запросов
-[ActuatorEndpoints] --> [Prometheus] : Отправка метрик
-[OpenTelemetry] --> [Jaeger] : Отправка трасс
-[Jaeger] --> [Grafana] : Просмотр трасс
+[ActuatorEndpoints] --> [OTel Collector] : Забор метрик
+[OpenTelemetry] --> [OTel Collector] : Отправка трасс
+[Logback (OpenTelemetryAppender)] --> [OTel Collector] : Отправка логов
+[OTel Collector] --> [Prometheus] : Забор метрик
+[OTel Collector] --> [Tempo] : Отправка трасс
+[OTel Collector] --> [Loki] : Отправка метрик
+[Tempo] --> [Grafana] : Просмотр трасс
+[Loki] --> [Grafana] : Просмотр логов
 [Prometheus] --> [Grafana] : Просмотр метрик
 
 [person-service] --> [Docker] : Развертывание

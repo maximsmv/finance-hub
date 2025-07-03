@@ -16,7 +16,6 @@ java {
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 ext {
@@ -24,7 +23,7 @@ ext {
 }
 
 dependencies {
-    implementation 'com.advanced:api-contract:1.0.0'
+    implementation project(':api-contract')
 
     // ------------------------------ SPRING ------------------------------
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -69,6 +68,10 @@ dependencyManagement {
     imports {
         mavenBom "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${opentelemetryVersion}"
     }
+}
+
+tasks.named('build') {
+    dependsOn(':api-contract:publish')
 }
 
 tasks.named('test') {

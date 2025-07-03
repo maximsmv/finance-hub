@@ -1,0 +1,254 @@
+version: '3.8'
+
+services:
+#  Раскомментируйте и настройте Artifactory, если у вас его нет.
+#
+#  artifactory-service:
+#    image: docker.bintray.io/jfrog/artifactory-oss:7.49.6
+#    container_name: artifactory
+#    restart: always
+#    ports:
+#      - "8091:8081"
+#      - "8092:8082"
+#    volumes:
+#      - artifactory_data:/var/opt/jfrog/artifactory
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8081/artifactory/api/system/ping"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 20
+
+  individuals-api:
+    container_name: individuals-api
+    build:
+      context: ./modules/individuals-api
+      dockerfile: Dockerfile
+      args:
+        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
+        ARTIFACTORY_USER: person-service
+        ARTIFACTORY_PASSWORD: Person_service1
+    ports:
+      - "8080:8080"
+    volumes:
+      - individuals_api_gradle_cache:/home/gradle/.gradle
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+  person-service:
+    container_name: person-service
+    build:
+      context: ./modules/person-service
+      dockerfile: Dockerfile
+      args:
+        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
+        ARTIFACTORY_USER: person-service
+        ARTIFACTORY_PASSWORD: Person_service1
+    volumes:
+      - person_service_gradle_cache:/home/gradle/.gradle
+    depends_on:
+      person-service-postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    container_name: keycloak
+    ports:
+      - "8081:8081"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-postgres:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=password
+      - KC_HTTP_PORT=8081
+      - KC_HTTPS_PORT=8443
+      - KC_HEALTH_ENABLED=true
+      - KEYCLOAK_IMPORT=/opt/keycloak/data/import/my-realm-realm.json
+    command: start-dev --import-realm
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak/import:/opt/keycloak/data/import
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ 'CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/live' ]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+    networks:
+      - application-network
+
+  keycloak-postgres:
+    container_name: keycloak-postgres
+    image: postgres:17.5-alpine
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - application-network
+
+  person-service-postgres:
+    container_name: person-service-postgres
+    image: postgres:17.4
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=person-service
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - person_service_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U person-service" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - application-network
+
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.98.0
+    command: [ "--config=/etc/otelcol/otel-collector-config.yml" ]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol/otel-collector-config.yml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      - tempo
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:13133" ]
+#      interval: 30s
+#      timeout: 5s
+#      retries: 3
+#      start_period: 10s
+    networks:
+      - application-network
+
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3100/ready" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.54.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus_data:/prometheus
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9090/-/healthy" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo:2.5.0
+    ports:
+      - "3200:3200"
+    command: -config.file=/etc/tempo.yaml
+    volumes:
+      - ./tempo-config.yml:/etc/tempo.yaml
+      - ./tempo_data:/tmp/tempo
+    networks:
+      - application-network
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+
+
+networks:
+  application-network:
+    driver: bridge
+
+volumes:
+  person_service_gradle_cache:
+    driver: local
+  individuals_api_gradle_cache:
+    driver: local
+  tempo_data:
+    driver: local
+  person_service_postgres_data:
+    driver: local
+  grafana_data:
+    driver: local
+  keycloak_postgres_data:
+    driver: local
+  keycloak_data:
+    driver: local
+  artifactory_data:
+    driver: local
