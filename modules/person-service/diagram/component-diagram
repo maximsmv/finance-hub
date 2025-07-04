@@ -68,7 +68,7 @@ package "Testing" {
 [Logback (OpenTelemetryAppender)] --> [OTel Collector] : Отправка логов
 [OTel Collector] --> [Prometheus] : Забор метрик
 [OTel Collector] --> [Tempo] : Отправка трасс
-[OTel Collector] --> [Loki] : Отправка метрик
+[OTel Collector] --> [Loki] : Отправка логов
 [Tempo] --> [Grafana] : Просмотр трасс
 [Loki] --> [Grafana] : Просмотр логов
 [Prometheus] --> [Grafana] : Просмотр метрик
