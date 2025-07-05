@@ -31,7 +31,7 @@ public class UserService {
                         ex.getStatusCode(), ex.getResponseBodyAsString()
                 )))
                 .flatMap(createdUser ->
-                        keycloakIntegration.register(request)
+                        keycloakIntegration.register(request, Objects.requireNonNull(createdUser.getId()).toString())
                                 .onErrorResume(keycloakError -> {
                                     log.warn("Выполнение компенсирующего действия по удалению пользователя с id = {}", createdUser.getId());
                                     return userRestApi.compensateCreateUser(Objects.requireNonNull(createdUser.getId()))

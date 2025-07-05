@@ -54,10 +54,12 @@ class UserServiceTest {
 
     @Test
     void register_Success_ReturnsAuthResponse() {
+        UUID userId = UUID.randomUUID();
         UserDto createdUser = new UserDto();
         createdUser.setEmail("test@example.com");
+        createdUser.setId(userId);
         when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(createdUser));
-        when(keycloakIntegration.register(any(RegistrationRequest.class))).thenReturn(Mono.just(authResponse));
+        when(keycloakIntegration.register(any(RegistrationRequest.class), any())).thenReturn(Mono.just(authResponse));
 
         Mono<AuthResponse> result = userService.register(registrationRequest);
 
@@ -65,7 +67,7 @@ class UserServiceTest {
                 .expectNext(authResponse)
                 .verifyComplete();
 
-        verify(keycloakIntegration).register(registrationRequest);
+        verify(keycloakIntegration).register(registrationRequest, userId.toString());
     }
 
     @Test
@@ -78,17 +80,18 @@ class UserServiceTest {
                 .expectError(PasswordMismatchException.class)
                 .verify();
 
-        verify(keycloakIntegration, never()).register(any());
+        verify(keycloakIntegration, never()).register(any(), any());
         verify(userRestApi, never()).createUser(any());
     }
 
     @Test
     void register_UserAlreadyExists_ThrowsUserAlreadyExistsException() {
         UserDto createdUser = new UserDto();
-        createdUser.setId(UUID.randomUUID());
+        UUID userId = UUID.randomUUID();
+        createdUser.setId(userId);
         createdUser.setEmail("test@example.com");
         when(userRestApi.createUser(any(UserDto.class))).thenReturn(Mono.just(createdUser));
-        when(keycloakIntegration.register(any(RegistrationRequest.class)))
+        when(keycloakIntegration.register(any(RegistrationRequest.class), any()))
                 .thenReturn(Mono.error(new UserAlreadyExistsException()));
         when(userRestApi.compensateCreateUser(any())).thenReturn(Mono.empty());
 
@@ -98,7 +101,7 @@ class UserServiceTest {
                 .expectError(UserAlreadyExistsException.class)
                 .verify();
 
-        verify(keycloakIntegration).register(registrationRequest);
+        verify(keycloakIntegration).register(registrationRequest, userId.toString());
         Assertions.assertNotNull(createdUser.getId());
         verify(userRestApi).compensateCreateUser(createdUser.getId());
     }

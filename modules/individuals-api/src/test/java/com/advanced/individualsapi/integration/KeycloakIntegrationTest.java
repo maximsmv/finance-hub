@@ -147,6 +147,7 @@ class KeycloakIntegrationTest {
     @Test
     void register_Success_ReturnsAuthResponseAndCreatesUser() {
         UserDto user = new UserDto();
+        user.setId(UUID.randomUUID());
         user.setEmail("test@example.com");
         RegistrationRequest registrationRequest = new RegistrationRequest(user, "password", "password");
 

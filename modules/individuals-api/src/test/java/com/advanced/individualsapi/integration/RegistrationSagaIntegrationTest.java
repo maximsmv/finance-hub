@@ -106,7 +106,7 @@ public class RegistrationSagaIntegrationTest {
         );
 
         AuthResponse authResponse = new AuthResponse("token", 300, "refresh", "Bearer");
-        when(keycloakIntegration.register(any())).thenReturn(Mono.just(authResponse));
+        when(keycloakIntegration.register(any(), any())).thenReturn(Mono.just(authResponse));
 
         webTestClient.post()
                 .uri("/api/v1/auth/registration")
@@ -145,7 +145,7 @@ public class RegistrationSagaIntegrationTest {
                 response().withStatusCode(200)
         );
 
-        Mockito.when(keycloakIntegration.register(any()))
+        Mockito.when(keycloakIntegration.register(any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("Keycloak error")));
 
         webTestClient.post()

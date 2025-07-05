@@ -91,7 +91,7 @@ services:
     command: start-dev --import-realm
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ./keycloak/import:/opt/keycloak/data/import
+      - ./modules/individuals-api/keycloak/import:/opt/keycloak/data/import
     depends_on:
       keycloak-postgres:
         condition: service_healthy

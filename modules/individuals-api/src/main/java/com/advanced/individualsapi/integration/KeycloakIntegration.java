@@ -11,6 +11,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.jspecify.annotations.NonNull;
+import org.keycloak.representations.idm.CredentialRepresentation;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -21,13 +22,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.keycloak.representations.idm.UserRepresentation;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 public class KeycloakIntegration {
@@ -92,10 +92,10 @@ public class KeycloakIntegration {
     }
 
     @WithSpan
-    public Mono<AuthResponse> register(RegistrationRequest request) {
+    public Mono<AuthResponse> register(RegistrationRequest request, String userId) {
         return getAdminAccessToken()
                 .flatMap(adminToken ->
-                        createUser(adminToken, request)
+                        createUser(adminToken, request, userId)
                                 .onErrorResume(WebClientResponseException.class, ex -> {
                                     if (ex.getStatusCode() == HttpStatus.CONFLICT || ex.getStatusCode() == HttpStatus.BAD_REQUEST) {
                                         return Mono.error(new UserAlreadyExistsException());
@@ -107,8 +107,8 @@ public class KeycloakIntegration {
     }
 
     @WithSpan
-    private Mono<String> createUser(String adminToken, RegistrationRequest request) {
-        UserRepresentation user = getUserRepresentation(request);
+    private Mono<String> createUser(String adminToken, RegistrationRequest request, String userId) {
+        UserRepresentation user = getUserRepresentation(request, userId);
         return webClient.post()
                 .uri(adminEndpoint + "/users")
                 .header("Authorization", "Bearer " + adminToken)
@@ -229,19 +229,23 @@ public class KeycloakIntegration {
                 });
     }
 
-    private static UserRepresentation getUserRepresentation(RegistrationRequest request) {
-        return new UserRepresentation(
-                request.user().getEmail(),
-                request.user().getEmail(),
-                true,
-                Collections.singletonList(
-                        new UserRepresentation.CredentialRepresentation(
-                                false,
-                                "password",
-                                request.password()
-                        )
-                )
-        );
+    private static UserRepresentation getUserRepresentation(RegistrationRequest request, String userId) {
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setTemporary(false);
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(request.password());
+
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("user_id", List.of(userId));
+
+        UserRepresentation user = new UserRepresentation();
+        user.setEmail(request.user().getEmail());
+        user.setUsername(request.user().getEmail());
+        user.setEnabled(true);
+        user.setCredentials(Collections.singletonList(credential));
+        user.setAttributes(attributes);
+
+        return user;
     }
 }
 
@@ -261,20 +265,21 @@ record KeycloakUserInfo(
         String created_at
 ) {}
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-record UserRepresentation(
-        String username,
-        String email,
-        boolean enabled,
-        List<CredentialRepresentation> credentials
-) {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record CredentialRepresentation(
-            boolean temporary,
-            String type,
-            String value
-    ) {}
-}
+//@JsonIgnoreProperties(ignoreUnknown = true)
+//record UserRepresentation(
+//        String username,
+//        String email,
+//        boolean enabled,
+//        List<CredentialRepresentation> credentials,
+//        Map<String, List<String>> attributes
+//) {
+//    @JsonIgnoreProperties(ignoreUnknown = true)
+//    record CredentialRepresentation(
+//            boolean temporary,
+//            String type,
+//            String value
+//    ) {}
+//}
 
 record CachedToken(
         String token, Instant expiry
