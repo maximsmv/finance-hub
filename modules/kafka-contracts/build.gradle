@@ -18,11 +18,11 @@ dependencies {
 
 }
 
-task generateKafkaSchemas(type: Exec) {
+tasks.register('generateKafkaSchemas', Exec) {
     group = 'build'
     description = 'Generate Kafka DTOs from AsyncAPI spec'
 
-    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+    if (System.properties['os.name'].toString().toLowerCase().contains('windows')) {
         commandLine 'cmd', '/c', 'generate-kafka.bat'
     } else {
         commandLine './generate-kafka.sh'
