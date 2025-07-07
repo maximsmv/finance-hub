@@ -1,0 +1,43 @@
+asyncapi: 2.6.0
+info:
+  title: Kafka Contract
+  version: '1.0.0'
+  x-java-class-package: com.kafka.contracts
+  description: >
+    Контракт событий между сервисами (deposit, withdrawal и др.)
+
+servers:
+  kafka-broker:
+    url: localhost:9092
+    protocol: kafka
+
+channels:
+  deposit-requested:
+    subscribe:
+      operationId: onDepositRequested
+      summary: Событие запроса пополнения
+      message:
+        name: DepositRequested
+        title: DepositRequested
+        payload:
+          $ref: '#/components/schemas/DepositRequestedPayload'
+
+components:
+  schemas:
+    DepositRequestedPayload:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        walletId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

@@ -1,36 +1,25 @@
-server:
-  port: 8082
-
 spring:
   application:
-    name: person-service
+    name: transaction-service
   datasource:
-    url: jdbc:postgresql://person-service-postgres:5432/db
-    username: person-service
+    url: jdbc:postgresql://transaction-service-postgres:5432/db
+    username: transaction-service
     password: password
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: person
-      org:
-        hibernate:
-          envers:
-            default_schema: person
+    show-sql: true
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-    url: jdbc:postgresql://person-service-postgres:5432/db
-    user: person-service
+    url: jdbc:postgresql://transaction-service-postgres:5432/db
+    user: transaction-service
     password: password
-    schemas: person
   jackson:
     property-naming-strategy: SNAKE_CASE
+
 management:
   endpoints:
     web:
@@ -46,10 +35,10 @@ springdoc:
 otel:
   resource:
     attributes:
-      service.name: person-service
+      service.name: transaction-service
   exporter:
     otlp:
-      endpoint: http://otel-collector:4318
+      endpoint: http://localhost:4318
   logs:
     exporter: otlp
   metrics:

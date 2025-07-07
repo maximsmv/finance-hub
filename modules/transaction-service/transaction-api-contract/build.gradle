@@ -1,0 +1,98 @@
+plugins {
+    id 'java-library'
+    id 'org.openapi.generator' version '7.14.0'
+    id 'org.springframework.boot' version '3.5.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'maven-publish'
+}
+
+group = 'com.advanced'
+version = '1.0.0'
+description = 'transaction-api-contract'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'io.projectreactor:reactor-core'
+
+    api 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.0'
+}
+
+
+openApiGenerate {
+    generatorName  = 'java'
+    library        = 'webclient'
+    inputSpec      = "${projectDir}/src/main/resources/api-docs.yaml"
+    outputDir      = "${buildDir}/generated"
+    apiPackage     = 'com.advanced.contract.api'
+    modelPackage   = 'com.advanced.contract.model'
+    configOptions = [
+            "useJakartaEe": "true",
+            "dateLibrary": "java8",
+            "openApiNullable": "false",
+            "useTags": "true",
+            "useBeanValidation": "true"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "${buildDir}/generated/src/main/java"
+        }
+    }
+}
+
+publishing {
+    publications {
+        contract(MavenPublication) {
+            from components.java
+            groupId = group
+            artifactId = 'transaction-api-contract'
+            version = project.version
+        }
+    }
+
+    repositories {
+        mavenLocal()
+//        maven {
+//            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+//            allowInsecureProtocol = true
+//            credentials {
+//                username = System.getenv('ARTIFACTORY_USER') ?: 'deploy_user'
+//                password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'deploy_user1'
+//            }
+//        }
+    }
+}
+
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('jar') {
+    enabled = true
+}
+
+tasks.named('compileJava') {
+    dependsOn tasks.openApiGenerate
+}
+
+tasks.named('clean') {
+    doLast {
+        delete "${buildDir}/generated"
+    }
+}

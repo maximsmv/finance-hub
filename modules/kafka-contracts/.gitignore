@@ -1,0 +1,6 @@
+/src/
+/build/
+/.gradle/
+/.idea/
+*.iml
+/node_modules

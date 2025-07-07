@@ -139,6 +139,25 @@ services:
     networks:
       - application-network
 
+  transaction-service-postgres:
+    container_name: transaction-service-postgres
+    image: postgres:17.4
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=transaction-service
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - transaction_service_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U person-service" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - application-network
+
   otel-collector:
     container_name: otel-collector
     image: otel/opentelemetry-collector-contrib:0.98.0
@@ -236,6 +255,8 @@ networks:
     driver: bridge
 
 volumes:
+  transaction_service_postgres_data:
+    driver: local
   person_service_gradle_cache:
     driver: local
   individuals_api_gradle_cache:

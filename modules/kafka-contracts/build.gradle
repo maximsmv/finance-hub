@@ -1,0 +1,62 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.advanced'
+version = '1.0.0'
+description = 'Kafka Contracts'
+
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+}
+
+task generateKafkaSchemas(type: Exec) {
+    group = 'build'
+    description = 'Generate Kafka DTOs from AsyncAPI spec'
+
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'generate-kafka.bat'
+    } else {
+        commandLine './generate-kafka.sh'
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/generated'
+        }
+    }
+}
+
+tasks.compileJava.dependsOn(generateKafkaSchemas)
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'kafka-contracts'
+            version = project.version
+        }
+    }
+    repositories {
+        maven {
+            name = "artifactory"
+            url = uri("http://localhost:8092/artifactory/libs-release-local/")
+            allowInsecureProtocol = true
+            credentials {
+                username = project.findProperty("ARTIFACTORY_USER") ?: "person-service"
+                password = project.findProperty("ARTIFACTORY_PASSWORD") ?: "Person_service1"
+            }
+        }
+    }
+}

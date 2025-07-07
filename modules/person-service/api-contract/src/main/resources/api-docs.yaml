@@ -1,10 +1,9 @@
 openapi: 3.0.1
 info:
-  title: OpenAPI definition
-  version: v0
+  title: Person Service API
+  version: 1.0.0
 servers:
   - url: http://localhost:8081
-    description: Generated server url
 paths:
   /api/v1/users/{id}:
     get:
