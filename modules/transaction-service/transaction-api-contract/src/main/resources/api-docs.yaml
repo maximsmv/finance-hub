@@ -112,11 +112,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/TransactionInitResponse'
         '400':
-          description: Ошибка валидации
+          description: Ошибка валидации или кошелек не найден
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorValidationResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorValidationResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
 
   /transactions/{type}/confirm:
     post:
@@ -279,6 +281,8 @@ components:
       properties:
         walletUid:
           type: string
+        walletTypeUid:
+          type: string
         userUid:
           type: string
         currency:
@@ -286,6 +290,8 @@ components:
         balance:
           type: number
           format: double
+        status:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -299,7 +305,8 @@ components:
           type: string
         amount:
           type: number
-          format: double
+          format: BigDecimal
+          minimum: 1
         comment:
           type: string
     WithdrawalInitRequest:
@@ -312,7 +319,7 @@ components:
           type: string
         amount:
           type: number
-          format: double
+          format: BigDecimal
         comment:
           type: string
     TransferInitRequest:
@@ -328,20 +335,25 @@ components:
           type: string
         amount:
           type: number
-          format: double
+          format: BigDecimal
         comment:
           type: string
     TransactionInitResponse:
       type: object
       properties:
-        transactionUid:
+        available:
+          type: boolean
+        reason:
           type: string
-        status:
-          type: string
-          enum: [ initialized ]
-        expiresAt:
-          type: string
-          format: date-time
+        amount:
+          type: number
+          format: BigDecimal
+        fee:
+          type: number
+          format: BigDecimal
+        totalAmount:
+          type: number
+          format: BigDecimal
     DepositConfirmRequest:
       type: object
       required:
@@ -389,7 +401,7 @@ components:
           type: string
         amount:
           type: number
-          format: double
+          format: BigDecimal
         createdAt:
           type: string
           format: date-time

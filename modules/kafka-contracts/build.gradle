@@ -4,18 +4,19 @@ plugins {
 }
 
 group = 'com.advanced'
-version = '1.0.0'
+version = '1.0.1'
 description = 'Kafka Contracts'
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 repositories {
     mavenCentral()
-}
-
-dependencies {
-
 }
 
 tasks.register('generateKafkaSchemas', Exec) {
@@ -32,7 +33,7 @@ tasks.register('generateKafkaSchemas', Exec) {
 sourceSets {
     main {
         java {
-            srcDir 'src/generated'
+            srcDir 'src/main/java'
         }
     }
 }
@@ -41,9 +42,9 @@ tasks.compileJava.dependsOn(generateKafkaSchemas)
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
+        contract(MavenPublication) {
             from components.java
-            groupId = project.group
+            groupId = group
             artifactId = 'kafka-contracts'
             version = project.version
         }
@@ -51,7 +52,7 @@ publishing {
     repositories {
         maven {
             name = "artifactory"
-            url = uri("http://localhost:8092/artifactory/libs-release-local/")
+            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
             allowInsecureProtocol = true
             credentials {
                 username = project.findProperty("ARTIFACTORY_USER") ?: "person-service"
@@ -59,4 +60,8 @@ publishing {
             }
         }
     }
+}
+
+tasks.named('jar') {
+    enabled = true
 }

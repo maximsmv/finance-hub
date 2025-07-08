@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.Currency;
 import java.util.UUID;
 
 @Entity
@@ -31,11 +32,13 @@ public class WalletType {
     @Column(nullable = false, length = 32)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 3)
-    private String currencyCode;
+    private Currency currencyCode;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 18)
-    private String status;
+    private WalletStatus status;
 
     private OffsetDateTime archivedAt;
 

@@ -1,43 +1,162 @@
 asyncapi: 2.6.0
 info:
-  title: Kafka Contract
+  title: Kafka Contract for Transactions
   version: '1.0.0'
-  x-java-class-package: com.kafka.contracts
-  description: >
-    Контракт событий между сервисами (deposit, withdrawal и др.)
+  description: AsyncAPI schema for transaction-related Kafka messages
 
-servers:
-  kafka-broker:
-    url: localhost:9092
-    protocol: kafka
+defaultContentType: application/json
 
 channels:
   deposit-requested:
-    subscribe:
-      operationId: onDepositRequested
-      summary: Событие запроса пополнения
+    description: Request to initiate a deposit
+    publish:
+      operationId: publishDepositRequested
       message:
-        name: DepositRequested
-        title: DepositRequested
-        payload:
-          $ref: '#/components/schemas/DepositRequestedPayload'
+        $ref: '#/components/messages/DepositRequested'
+  deposit-completed:
+    description: Notification that deposit was completed
+    subscribe:
+      operationId: onDepositCompleted
+      message:
+        $ref: '#/components/messages/DepositCompleted'
+  withdrawal-requested:
+    description: Request to initiate a withdrawal
+    publish:
+      operationId: publishWithdrawalRequested
+      message:
+        $ref: '#/components/messages/WithdrawalRequested'
+  withdrawal-completed:
+    description: Notification that withdrawal was completed
+    subscribe:
+      operationId: onWithdrawalCompleted
+      message:
+        $ref: '#/components/messages/WithdrawalCompleted'
+  withdrawal-failed:
+    description: Notification that withdrawal failed
+    subscribe:
+      operationId: onWithdrawalFailed
+      message:
+        $ref: '#/components/messages/WithdrawalFailed'
 
 components:
+  messages:
+    DepositRequested:
+      name: DepositRequested
+      title: DepositRequested event
+      payload:
+        $ref: '#/components/schemas/DepositRequestedPayload'
+
+    DepositCompleted:
+      name: DepositCompleted
+      title: DepositCompleted event
+      payload:
+        $ref: '#/components/schemas/DepositCompletedPayload'
+
+    WithdrawalRequested:
+      name: WithdrawalRequested
+      title: WithdrawalRequested event
+      payload:
+        $ref: '#/components/schemas/WithdrawalRequestedPayload'
+
+    WithdrawalCompleted:
+      name: WithdrawalCompleted
+      title: WithdrawalCompleted event
+      payload:
+        $ref: '#/components/schemas/WithdrawalCompletedPayload'
+
+    WithdrawalFailed:
+      name: WithdrawalFailed
+      title: WithdrawalFailed event
+      payload:
+        $ref: '#/components/schemas/WithdrawalFailedPayload'
+
   schemas:
     DepositRequestedPayload:
       type: object
+      required:
+        - transactionId
+        - walletId
+        - amount
+        - currency
       properties:
         transactionId:
           type: string
-          format: uuid
         walletId:
           type: string
-          format: uuid
         amount:
           type: number
           format: double
         currency:
+          $ref: '#/components/schemas/Currency'
+
+    DepositCompletedPayload:
+      type: object
+      required:
+        - transactionId
+        - status
+      properties:
+        transactionId:
           type: string
-        timestamp:
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+
+    WithdrawalRequestedPayload:
+      type: object
+      required:
+        - transactionId
+        - walletId
+        - amount
+        - currency
+      properties:
+        transactionId:
           type: string
-          format: date-time
+        walletId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          $ref: '#/components/schemas/Currency'
+
+    WithdrawalCompletedPayload:
+      type: object
+      required:
+        - transactionId
+        - status
+      properties:
+        transactionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+
+    WithdrawalFailedPayload:
+      type: object
+      required:
+        - transactionId
+        - reason
+      properties:
+        transactionId:
+          type: string
+        reason:
+          $ref: '#/components/schemas/FailureReason'
+
+    Currency:
+      type: string
+      enum:
+        - RUB
+        - USD
+        - EUR
+
+    TransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - COMPLETED
+        - FAILED
+
+    FailureReason:
+      type: string
+      enum:
+        - INSUFFICIENT_FUNDS
+        - WALLET_NOT_FOUND
+        - UNKNOWN_ERROR

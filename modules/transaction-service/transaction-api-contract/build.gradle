@@ -67,15 +67,15 @@ publishing {
     }
 
     repositories {
-        mavenLocal()
-//        maven {
-//            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
-//            allowInsecureProtocol = true
-//            credentials {
-//                username = System.getenv('ARTIFACTORY_USER') ?: 'deploy_user'
-//                password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'deploy_user1'
-//            }
-//        }
+//        mavenLocal()
+        maven {
+            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+            allowInsecureProtocol = true
+            credentials {
+                username = System.getenv('ARTIFACTORY_USER') ?: 'person-service'
+                password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'Person_service1'
+            }
+        }
     }
 }
 

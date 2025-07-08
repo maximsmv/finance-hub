@@ -21,6 +21,14 @@ configurations {
 }
 
 repositories {
+	maven {
+		url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+		allowInsecureProtocol = true
+		credentials {
+			username = System.getenv('ARTIFACTORY_USER') ?: 'person-service'
+			password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'Person_service1'
+		}
+	}
 	mavenCentral()
 }
 
@@ -30,6 +38,7 @@ ext {
 
 dependencies {
 	implementation project(':transaction-api-contract')
+	implementation 'com.advanced:kafka-contracts:1.0.1'
 
 	// ------------------------------ SPRING ------------------------------
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

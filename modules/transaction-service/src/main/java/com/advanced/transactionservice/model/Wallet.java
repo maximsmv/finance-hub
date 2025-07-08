@@ -39,8 +39,9 @@ public class Wallet {
     @Column(nullable = false)
     private UUID userUid;
 
-    @Column(nullable = false, length = 30)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private WalletStatus status;
 
     @Column(nullable = false)
     private BigDecimal balance;

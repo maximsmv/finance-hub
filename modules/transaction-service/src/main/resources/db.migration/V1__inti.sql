@@ -42,3 +42,14 @@ CREATE TABLE payment_requests (
     payment_method_id BIGINT,       -- для deposit/withdrawal
     failure_reason VARCHAR(256)
 );
+
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_id VARCHAR(255) NOT NULL,
+    amount NUMERIC(19, 2) NOT NULL,
+    currency VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    failure_reason VARCHAR(50),
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    modified_at TIMESTAMP
+);
