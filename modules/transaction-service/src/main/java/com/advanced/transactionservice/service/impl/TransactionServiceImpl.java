@@ -2,24 +2,26 @@ package com.advanced.transactionservice.service.impl;
 
 import com.advanced.contract.model.*;
 import com.advanced.transactionservice.model.Currency;
-import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.service.TransactionService;
 import com.advanced.transactionservice.service.WalletService;
+import com.advanced.transactionservice.service.validation.TransactionValidate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
 
     private final WalletService walletService;
+
+    private final TransactionValidate transactionValidate;
 
     private final CalculationFeeService calculationFeeService;
 
@@ -28,10 +30,7 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionInitResponse initDeposit(DepositInitRequest request) {
         WalletResponse wallet = walletService.getWalletByUid(request.getWalletUid());
 
-        TransactionInitResponse response = getTransactionInitResponse(wallet);
-        if (Objects.nonNull(response)) {
-            return response;
-        }
+        transactionValidate.validateInitDepositRequest(wallet);
 
         return getTransactionInitResponse(
                 calculationFeeService.calculationDepositFee(Currency.valueOf(wallet.getCurrency())),
@@ -44,15 +43,13 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionInitResponse initWithdrawal(WithdrawalInitRequest request) {
         WalletResponse wallet = walletService.getWalletByUid(request.getWalletUid());
 
-        TransactionInitResponse response = getTransactionInitResponse(wallet);
-        if (Objects.nonNull(response)) {
-            return response;
-        }
+        BigDecimal fee = calculationFeeService.calculationWithdrawalFee();
+        BigDecimal totalAmount = request.getAmount().add(fee).setScale(2, RoundingMode.HALF_EVEN);
 
-        //TODO: Проверка баланса
+        transactionValidate.validateInitWithdrawalRequest(wallet, totalAmount);
 
         return getTransactionInitResponse(
-                calculationFeeService.calculationWithdrawalFee(),
+                fee,
                 request.getAmount()
         );
     }
@@ -63,15 +60,13 @@ public class TransactionServiceImpl implements TransactionService {
         WalletResponse fromWalletUid = walletService.getWalletByUid(request.getFromWalletUid());
         WalletResponse toWalletUid = walletService.getWalletByUid(request.getToWalletUid());
 
-        TransactionInitResponse response = getTransactionInitResponse(fromWalletUid, toWalletUid);
-        if (Objects.nonNull(response)) {
-            return response;
-        }
+        BigDecimal fee = calculationFeeService.calculationTransferFee();
+        BigDecimal totalAmount = request.getAmount().add(fee).setScale(2, RoundingMode.HALF_EVEN);
 
-        //TODO: Сделать проверку баланса
+        transactionValidate.validateInitTransferRequest(fromWalletUid, toWalletUid, totalAmount);
 
         return getTransactionInitResponse(
-                calculationFeeService.calculationTransferFee(),
+                fee,
                 request.getAmount()
         );
     }
@@ -97,41 +92,25 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public List<TransactionStatusResponse> searchTransactions(String userUid, String walletUid, String type, String status, LocalDateTime dateFrom, LocalDateTime dateTo, int page, int size) {
+    public List<TransactionStatusResponse> searchTransactions(
+            String userUid,
+            String walletUid,
+            String type,
+            String status,
+            LocalDateTime dateFrom,
+            LocalDateTime dateTo,
+            int page,
+            int size
+    ) {
         return List.of();
     }
 
     private TransactionInitResponse getTransactionInitResponse(BigDecimal fee, BigDecimal request) {
         TransactionInitResponse response = new TransactionInitResponse();
-        response.setAvailable(true);
         response.setFee(fee);
         response.setAmount(request);
         response.setTotalAmount(request.add(response.getFee()));
         return response;
-    }
-
-    private static TransactionInitResponse getTransactionInitResponse(WalletResponse wallet) {
-        if (!WalletStatus.ACTIVE.getValue().equalsIgnoreCase(wallet.getStatus())) {
-            TransactionInitResponse response = new TransactionInitResponse();
-            response.setAvailable(false);
-            response.setReason("Wallet is not active");
-            return response;
-        }
-        return null;
-    }
-
-    private static TransactionInitResponse getTransactionInitResponse(
-            WalletResponse toWallet,
-            WalletResponse fromWallet
-    ) {
-        if (!WalletStatus.ACTIVE.getValue().equalsIgnoreCase(toWallet.getStatus())
-                || !WalletStatus.ACTIVE.getValue().equalsIgnoreCase(fromWallet.getStatus())) {
-            TransactionInitResponse response = new TransactionInitResponse();
-            response.setAvailable(false);
-            response.setReason("One of Wallets is not active");
-            return response;
-        }
-        return null;
     }
 
 }

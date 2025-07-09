@@ -289,7 +289,7 @@ components:
           type: string
         balance:
           type: number
-          format: double
+          format: BigDecimal
         status:
           type: string
         createdAt:
@@ -341,10 +341,6 @@ components:
     TransactionInitResponse:
       type: object
       properties:
-        available:
-          type: boolean
-        reason:
-          type: string
         amount:
           type: number
           format: BigDecimal
