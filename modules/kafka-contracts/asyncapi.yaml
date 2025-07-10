@@ -81,13 +81,20 @@ components:
       properties:
         transactionId:
           type: string
+        userId:
+          type: string
         walletId:
           type: string
         amount:
-          type: number
-          format: double
+          type: string
+          format: decimal
         currency:
-          $ref: '#/components/schemas/Currency'
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
+        timestamp:
+          type: string
+          format: date-time
 
     DepositCompletedPayload:
       type: object
@@ -110,13 +117,22 @@ components:
       properties:
         transactionId:
           type: string
+        userId:
+          type: string
         walletId:
           type: string
         amount:
-          type: number
-          format: double
+          type: string
+          format: decimal
         currency:
-          $ref: '#/components/schemas/Currency'
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
+        destination:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
 
     WithdrawalCompletedPayload:
       type: object
@@ -139,13 +155,6 @@ components:
           type: string
         reason:
           $ref: '#/components/schemas/FailureReason'
-
-    Currency:
-      type: string
-      enum:
-        - RUB
-        - USD
-        - EUR
 
     TransactionStatus:
       type: string

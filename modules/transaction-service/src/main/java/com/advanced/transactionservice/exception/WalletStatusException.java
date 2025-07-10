@@ -11,7 +11,7 @@ public class WalletStatusException extends RuntimeException {
     private final String walletUid;
 
     public WalletStatusException(WalletStatus status, String walletUid) {
-        super("Wallet status exception. The current status of the wallet with uid=" + walletUid + " is " + status.getValue());
+        super("WalletStatusException. The current status of the wallet with uid=" + walletUid + " is " + status.getValue());
         this.walletStatus = status;
         this.walletUid = walletUid;
     }

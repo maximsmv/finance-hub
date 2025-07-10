@@ -1,0 +1,49 @@
+package com.advanced.transactionservice.mapper;
+
+import com.advanced.transactionservice.model.PaymentRequest;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class KafkaPayloadMapperTest {
+
+    private final KafkaPayloadMapper mapper = Mappers.getMapper(KafkaPayloadMapper.class);
+
+    @Test
+    void toDepositRequestedPayload_shouldMapCorrectly() {
+        var payment = new PaymentRequest();
+        payment.setUid(UUID.randomUUID());
+        payment.setWalletUid(UUID.randomUUID());
+        payment.setUserUid(UUID.randomUUID());
+        payment.setAmount(new BigDecimal("99.99"));
+
+        var payload = mapper.toDepositRequestedPayload(payment);
+
+        assertEquals(payment.getUid().toString(), payload.getTransactionId());
+        assertEquals(payment.getWalletUid().toString(), payload.getWalletId());
+        assertEquals(payment.getUserUid().toString(), payload.getUserId());
+        assertEquals("99.99", payload.getAmount());
+        assertNotNull(payload.getTimestamp());
+    }
+
+    @Test
+    void toWithdrawalRequestedPayload_shouldMapWithCommentAsDestination() {
+        var payment = new PaymentRequest();
+        payment.setUid(UUID.randomUUID());
+        payment.setWalletUid(UUID.randomUUID());
+        payment.setUserUid(UUID.randomUUID());
+        payment.setAmount(new BigDecimal("25.00"));
+        payment.setComment("Visa **** 1234");
+
+        var payload = mapper.toWithdrawalRequestedPayload(payment);
+
+        assertEquals("25.00", payload.getAmount());
+        assertEquals("Visa **** 1234", payload.getDestination());
+        assertNotNull(payload.getTimestamp());
+    }
+
+}

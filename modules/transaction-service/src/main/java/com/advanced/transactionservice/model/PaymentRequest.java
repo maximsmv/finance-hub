@@ -38,19 +38,20 @@ public class PaymentRequest {
     private String comment;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Column(nullable = false)
     private PaymentType type;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "source_wallet_uid")
-    private Wallet sourceWallet;
+    @Column(name = "wallet_uid", nullable = false)
+    private UUID walletUid;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "destination_wallet_uid")
-    private Wallet destinationWallet;
+    @Column(name = "target_wallet_uid")
+    private UUID targetWalletUid;
+
+    @Column(length = 256)
+    private String failureReason;
 
     @Column(nullable = false, length = 20)
-    private String status;
+    private PaymentStatus status;
 
     private OffsetDateTime processedAt;
 

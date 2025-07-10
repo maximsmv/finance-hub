@@ -1,6 +1,5 @@
 package com.advanced.transactionservice.service.impl;
 
-import com.advanced.transactionservice.model.Currency;
 import com.advanced.transactionservice.service.CalculationFeeService;
 import org.springframework.stereotype.Service;
 
@@ -10,22 +9,21 @@ import java.math.BigDecimal;
 public class CalculationFeeServiceImpl implements CalculationFeeService {
 
     @Override
-    public BigDecimal calculationDepositFee(Currency currency) {
-        return switch (currency) {
-            case EUR -> BigDecimal.valueOf(0.05);
-            case USD -> BigDecimal.valueOf(0.1);
-            case RUB -> BigDecimal.valueOf(1);
-        };
+    public BigDecimal calculationDepositFee(String currency) {
+        //Тут какая-нибудь бизнес логика расчета комиссии
+        return BigDecimal.ZERO;
     }
 
     @Override
     public BigDecimal calculationWithdrawalFee() {
-        return BigDecimal.ZERO;
+        //Тут какая-нибудь бизнес логика расчета комиссии
+        return BigDecimal.valueOf(0.15);
     }
 
     @Override
     public BigDecimal calculationTransferFee() {
-        return BigDecimal.ZERO;
+        //Тут какая-нибудь бизнес логика расчета комиссии
+        return BigDecimal.valueOf(0.10);
     }
 
 }

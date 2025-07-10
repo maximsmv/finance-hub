@@ -5,15 +5,15 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum Currency {
-    RUB("RUB"),
-    USD("USD"),
-    EUR("EUR");
+public enum PaymentStatus {
+    PENDING("PENDING"),
+    COMPLETED("COMPLETED"),
+    FAILED("FAILED");
 
     private final String value;
 
-    public static Currency fromValue(String value) {
-        for (Currency e : values()) {
+    public static PaymentStatus fromValue(String value) {
+        for (PaymentStatus e : values()) {
             if (e.value.equals(value)) {
                 return e;
             }
@@ -25,4 +25,5 @@ public enum Currency {
     public String toString() {
         return String.valueOf(value);
     }
+
 }

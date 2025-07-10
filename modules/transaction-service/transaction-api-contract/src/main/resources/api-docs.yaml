@@ -269,6 +269,7 @@ components:
       required:
         - userUid
         - currency
+        - name
       properties:
         name:
           type: string
@@ -306,9 +307,10 @@ components:
         amount:
           type: number
           format: BigDecimal
-          minimum: 1
-        comment:
+        currency:
           type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
     WithdrawalInitRequest:
       type: object
       required:
@@ -353,28 +355,64 @@ components:
     DepositConfirmRequest:
       type: object
       required:
-        - transactionUid
+        - walletUid
+        - amount
+        - currency
       properties:
-        transactionUid:
+        walletUid:
           type: string
-        source:
+        amount:
+          type: number
+          format: BigDecimal
+        currency:
           type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
+        comment:
+          type: string
+          maxLength: 100
     WithdrawalConfirmRequest:
       type: object
       required:
-        - transactionUid
+        - walletUid
+        - amount
+        - currency
       properties:
-        transactionUid:
+        walletUid:
           type: string
+        amount:
+          type: number
+          format: BigDecimal
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
         destination:
           type: string
+        comment:
+          type: string
+          maxLength: 100
     TransferConfirmRequest:
       type: object
       required:
-        - transactionUid
+        - walletUid
+        - targetWalletUid
+        - amount
       properties:
-        transactionUid:
+        walletUid:
           type: string
+        targetWalletUid:
+          type: string
+        amount:
+          type: number
+          format: BigDecimal
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
+        comment:
+          type: string
+          maxLength: 100
     TransactionConfirmResponse:
       type: object
       properties:
@@ -398,6 +436,10 @@ components:
         amount:
           type: number
           format: BigDecimal
+        failureReason:
+          type: string
+        comment:
+          type: string
         createdAt:
           type: string
           format: date-time

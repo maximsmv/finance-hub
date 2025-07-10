@@ -32,7 +32,6 @@ public class WalletType {
     @Column(nullable = false, length = 32)
     private String name;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 3)
     private Currency currencyCode;
 
