@@ -306,6 +306,7 @@ components:
       required:
         - walletUid
         - amount
+        - currency
       properties:
         walletUid:
           type: string
@@ -313,6 +314,7 @@ components:
         amount:
           type: number
           format: BigDecimal
+          minimum: 1
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
@@ -322,6 +324,7 @@ components:
       required:
         - walletUid
         - amount
+        - currency
       properties:
         walletUid:
           type: string
@@ -329,6 +332,11 @@ components:
         amount:
           type: number
           format: BigDecimal
+          minimum: 1
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
         comment:
           type: string
     TransferInitRequest:
@@ -406,6 +414,7 @@ components:
         amount:
           type: number
           format: BigDecimal
+          minimum: 1
         currency:
           type: string
           pattern: '^[A-Z]{3}$'

@@ -155,8 +155,15 @@ public class TransactionServiceImpl implements TransactionService {
                 WITHDRAWAL
         );
 
-        paymentRequestRepository.save(payment);
-        paymentRequestRepository.flush();
+        try {
+            paymentRequestRepository.save(payment);
+            paymentRequestRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
+                throw new TransactionConflictException();
+            }
+            throw ex;
+        }
 
         withdrawalRequestedProducer.send(kafkaPayloadMapper.toWithdrawalRequestedPayload(payment));
 
@@ -204,18 +211,11 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional(readOnly = true)
     public TransactionStatusResponse getTransactionStatus(String transactionId) {
-        UUID uid = UUID.fromString(transactionId);
+        UUID transactionUid = UUID.fromString(transactionId);
 
-        PaymentRequest payment = paymentRequestRepository.findById(uid)
+        PaymentRequest payment = paymentRequestRepository.findByTransactionUid(transactionUid)
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
 
-        TransactionStatusResponse response = new TransactionStatusResponse();
-        response.setTransactionUid(payment.getUid());
-        response.setStatus(payment.getStatus().name());
-        response.setType(TransactionStatusResponse.TypeEnum.valueOf(payment.getType().getValue()));
-        response.setAmount(payment.getAmount());
-        response.setComment(payment.getComment());
-        response.setFailureReason(payment.getFailureReason());
         return paymentRequestMapper.toTransactionStatusResponse(payment);
     }
 

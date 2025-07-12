@@ -1,21 +1,19 @@
-package com.advanced.transactionservice.controller;
+package com.advanced.transactionservice.controller.transaction.confirm;
 
 import com.advanced.contract.model.DepositConfirmRequest;
 import com.advanced.kafka.contracts.model.DepositRequestedPayload;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
-import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.service.CalculationFeeService;
+import com.advanced.transactionservice.utils.WalletUtils;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.RecordsToDelete;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +41,10 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
@@ -56,7 +57,7 @@ import static org.mockito.Mockito.when;
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-class TransactionRestControllerV1Test {
+class ConfirmDepositRestControllerV1Test {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -173,9 +174,7 @@ class TransactionRestControllerV1Test {
 
     @Test
     void confirmDeposit_shouldSendMessageToKafka() {
-        WalletType walletType = createWalletType();
-        UUID userId = UUID.randomUUID();
-        Wallet wallet = createWallet("test", walletType, BigDecimal.ZERO, userId);
+        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
 
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(wallet.getUid());
@@ -213,9 +212,7 @@ class TransactionRestControllerV1Test {
 
     @Test
     void confirmDeposit_shouldReturnBadRequest_whenWalletIsBlocked() {
-        WalletType walletType = createWalletType();
-        UUID userId = UUID.randomUUID();
-        Wallet wallet = createWallet("test", walletType, BigDecimal.ZERO, userId, WalletStatus.BLOCKED);
+        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO, WalletStatus.BLOCKED);
 
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(wallet.getUid());
@@ -368,10 +365,8 @@ class TransactionRestControllerV1Test {
 
     @Test
     void confirmDeposit_shouldBeIdempotent_whenSameTransactionUidIsUsed() {
-        UUID userUid = UUID.randomUUID();
         UUID transactionUid = UUID.randomUUID();
-        WalletType type = createWalletType();
-        Wallet wallet = createWallet("test", type, BigDecimal.ZERO, userUid);
+        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
 
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(wallet.getUid());
@@ -408,39 +403,6 @@ class TransactionRestControllerV1Test {
         ConsumerRecords<String, Object> newRecords = kafkaConsumer.poll(Duration.ofMillis(2000));
         assertEquals(0, countRecordsWithTransactionUid(newRecords, transactionUid),
                 "No new messages should be sent for duplicate request");
-    }
-
-    private Wallet createWallet(String name, WalletType type, BigDecimal balance, UUID userUid) {
-        Wallet wallet = new Wallet();
-        wallet.setName(name);
-        wallet.setWalletType(type);
-        wallet.setUserUid(userUid);
-        wallet.setStatus(WalletStatus.ACTIVE);
-        wallet.setBalance(balance);
-        walletRepository.save(wallet);
-        return wallet;
-    }
-
-    private Wallet createWallet(String name, WalletType type, BigDecimal balance, UUID userUid, WalletStatus status) {
-        Wallet wallet = new Wallet();
-        wallet.setName(name);
-        wallet.setWalletType(type);
-        wallet.setUserUid(userUid);
-        wallet.setStatus(status);
-        wallet.setBalance(balance);
-        walletRepository.save(wallet);
-        return wallet;
-    }
-
-    private WalletType createWalletType() {
-        WalletType type = new WalletType();
-        type.setCreator("system");
-        type.setName("default");
-        type.setUserType("default");
-        type.setStatus(WalletStatus.ACTIVE);
-        type.setCurrencyCode(Currency.getInstance("RUB"));
-        walletTypeRepository.save(type);
-        return type;
     }
 
     private void assertNoKafkaMessagesSent() {

@@ -40,8 +40,12 @@ CREATE TABLE payment_requests (
     comment VARCHAR(256),
     fee DECIMAL,
     target_wallet_uid UUID,
-    transaction_uid UUID NOT NULL UNIQUE, -- ключ идемпотентности, получается из init операции
+    transaction_uid UUID NOT NULL, -- ключ идемпотентности, получается из init операции
     failure_reason VARCHAR(256),
     expires_at TIMESTAMP,
     processed_at TIMESTAMP
 );
+
+CREATE INDEX idx_payment_requests_wallet_uid ON payment_requests(wallet_uid);
+CREATE INDEX idx_payment_requests_user_uid ON payment_requests(user_uid);
+CREATE UNIQUE INDEX uq_payment_requests_transaction_uid ON payment_requests(transaction_uid);
