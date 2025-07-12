@@ -38,6 +38,8 @@ public class PaymentRequest {
 
     private BigDecimal fee;
 
+    private BigDecimal totalAmount;
+
     private String comment;
 
     @Enumerated(EnumType.STRING)

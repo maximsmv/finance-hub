@@ -113,7 +113,6 @@ public class TransactionServiceImpl implements TransactionService {
         WalletResponse wallet = walletService.getWalletByUid(request.getWalletUid());
 
         BigDecimal fee = calculationFeeService.calculationDepositFee(request.getCurrency());
-        BigDecimal totalAmount = request.getAmount().add(fee).setScale(2, RoundingMode.HALF_EVEN);
 
         transactionValidation.validateDeposit(wallet);
 

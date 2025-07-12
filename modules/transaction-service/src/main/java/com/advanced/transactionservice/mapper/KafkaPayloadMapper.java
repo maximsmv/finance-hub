@@ -18,15 +18,15 @@ public interface KafkaPayloadMapper {
     @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
     @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
     @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
-    @Mapping(target = "amount", source = "amount", qualifiedByName = "bigDecimalToString")
+    @Mapping(target = "amount", source = "totalAmount", qualifiedByName = "bigDecimalToString")
     @Mapping(target = "timestamp", expression = "java(OffsetDateTime.now())")
     DepositRequestedPayload toDepositRequestedPayload(PaymentRequest payment);
 
     @Mapping(target = "transactionId", expression = "java(payment.getTransactionUid().toString())")
     @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
     @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
-//    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
-    @Mapping(target = "amount", source = "amount", qualifiedByName = "bigDecimalToString")
+    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
+    @Mapping(target = "amount", source = "totalAmount", qualifiedByName = "bigDecimalToString")
     @Mapping(target = "destination", source = "comment")
     @Mapping(target = "timestamp", expression = "java(OffsetDateTime.now())")
     WithdrawalRequestedPayload toWithdrawalRequestedPayload(PaymentRequest payment);

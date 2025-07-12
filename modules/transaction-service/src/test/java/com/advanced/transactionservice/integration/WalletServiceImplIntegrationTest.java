@@ -30,6 +30,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -111,8 +112,8 @@ public class WalletServiceImplIntegrationTest {
         Wallet entity = walletRepository.findById(result.response().getWalletUid())
                 .orElseThrow();
 
-        assertEquals(result.request().getUserUid(), entity.getUserUid().toString());
-        assertEquals(BigDecimal.ZERO, entity.getBalance());
+        assertEquals(result.request().getUserUid(), entity.getUserUid());
+        assertEquals(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN), entity.getBalance());
         assertEquals(result.request().getName(), entity.getName());
     }
 

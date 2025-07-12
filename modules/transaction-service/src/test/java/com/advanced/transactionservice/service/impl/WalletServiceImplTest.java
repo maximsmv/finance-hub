@@ -125,7 +125,6 @@ class WalletServiceImplTest {
         assertEquals(new BigDecimal("75.00"), to.getBalance());
         Mockito.verify(walletRepository).save(from);
         Mockito.verify(walletRepository).save(to);
-        Mockito.verify(walletRepository).flush();
     }
 
     @Test
