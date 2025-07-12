@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Currency;
 import java.util.UUID;
 
 @Entity
@@ -35,10 +36,12 @@ public class PaymentRequest {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    private BigDecimal fee;
+
     private String comment;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "payment_type")
     private PaymentType type;
 
     @Column(name = "wallet_uid", nullable = false)
@@ -47,8 +50,13 @@ public class PaymentRequest {
     @Column(name = "target_wallet_uid")
     private UUID targetWalletUid;
 
+    private Currency currency;
+
     @Column(length = 256)
     private String failureReason;
+
+    @Column(nullable = false)
+    private UUID transactionUid;
 
     @Column(nullable = false, length = 20)
     private PaymentStatus status;

@@ -31,12 +31,14 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    topics:
-      depositRequested: deposit-requested
-      withdrawalRequested: withdrawal-requested
-      depositCompleted: deposit-completed
-      withdrawalCompleted: withdrawal-completed
-      withdrawalFailed: withdrawal-failed
+
+kafka:
+  topics:
+    deposit-requested: deposit-requested
+    withdrawal-requested: withdrawal-requested
+    deposit-completed: deposit-completed
+    withdrawal-completed: withdrawal-completed
+    withdrawal-failed: withdrawal-failed
 
 management:
   endpoints:

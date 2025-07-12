@@ -34,11 +34,14 @@ CREATE TABLE payment_requests (
     user_uid UUID NOT NULL,
     wallet_uid UUID NOT NULL REFERENCES wallets(uid),
     amount DECIMAL NOT NULL DEFAULT 0.0,
-    type payment_type NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    type VARCHAR(32) NOT NULL,
     status VARCHAR(32) NOT NULL,
     comment VARCHAR(256),
     fee DECIMAL,
-    target_wallet_uid UUID,         -- для transfer
-    payment_method_id BIGINT,       -- для deposit/withdrawal
-    failure_reason VARCHAR(256)
+    target_wallet_uid UUID,
+    transaction_uid UUID NOT NULL UNIQUE, -- ключ идемпотентности, получается из init операции
+    failure_reason VARCHAR(256),
+    expires_at TIMESTAMP,
+    processed_at TIMESTAMP
 );

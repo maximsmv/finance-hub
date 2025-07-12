@@ -275,17 +275,22 @@ components:
           type: string
         walletTypeUid:
           type: string
+          format: uuid
         userUid:
           type: string
+          format: uuid
     WalletResponse:
       type: object
       properties:
         walletUid:
           type: string
+          format: uuid
         walletTypeUid:
           type: string
+          format: uuid
         userUid:
           type: string
+          format: uuid
         currency:
           type: string
         balance:
@@ -304,6 +309,7 @@ components:
       properties:
         walletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
@@ -319,6 +325,7 @@ components:
       properties:
         walletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
@@ -333,8 +340,10 @@ components:
       properties:
         fromWalletUid:
           type: string
+          format: uuid
         toWalletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
@@ -352,18 +361,27 @@ components:
         totalAmount:
           type: number
           format: BigDecimal
+        transactionUid:
+          type: string
+          format: UUID
     DepositConfirmRequest:
       type: object
       required:
         - walletUid
         - amount
         - currency
+        - transactionUid
       properties:
+        transactionUid:
+          type: string
+          format: UUID
         walletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
+          minimum: 1
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
@@ -374,12 +392,17 @@ components:
     WithdrawalConfirmRequest:
       type: object
       required:
+        - transactionUid
         - walletUid
         - amount
         - currency
       properties:
+        transactionUid:
+          type: string
+          format: UUID
         walletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
@@ -395,14 +418,20 @@ components:
     TransferConfirmRequest:
       type: object
       required:
+        - transactionUid
         - walletUid
         - targetWalletUid
         - amount
       properties:
+        transactionUid:
+          type: string
+          format: UUID
         walletUid:
           type: string
+          format: uuid
         targetWalletUid:
           type: string
+          format: uuid
         amount:
           type: number
           format: BigDecimal
@@ -418,6 +447,7 @@ components:
       properties:
         transactionUid:
           type: string
+          format: uuid
         status:
           type: string
           enum: [ confirmed, failed ]
@@ -426,8 +456,10 @@ components:
       properties:
         transactionUid:
           type: string
+          format: uuid
         walletUid:
           type: string
+          format: uuid
         type:
           type: string
           enum: [ deposit, withdrawal, transfer ]

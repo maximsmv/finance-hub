@@ -12,8 +12,10 @@ import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.service.WalletService;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -93,12 +95,12 @@ public class WalletServiceImplIntegrationTest {
     }
 
     @Test
-    void testCreateWalletPersistsAndReturnsCorrectData() {
+    void createWallet_shouldPersistAndReturnCorrectData() {
         WalletType type = createWalletType();
 
         CreateWalletRequest request = new CreateWalletRequest();
-        request.setUserUid(UUID.randomUUID().toString());
-        request.setWalletTypeUid(type.getUid().toString());
+        request.setUserUid(UUID.randomUUID());
+        request.setWalletTypeUid(type.getUid());
         request.setName("123124121");
 
         WalletResponse response = walletService.createWallet(request);
@@ -106,7 +108,7 @@ public class WalletServiceImplIntegrationTest {
 
         assertNotNull(result.response().getWalletUid());
 
-        Wallet entity = walletRepository.findById(UUID.fromString(result.response().getWalletUid()))
+        Wallet entity = walletRepository.findById(result.response().getWalletUid())
                 .orElseThrow();
 
         assertEquals(result.request().getUserUid(), entity.getUserUid().toString());
@@ -118,13 +120,13 @@ public class WalletServiceImplIntegrationTest {
     }
 
     @Test
-    void testSuccessfulTransfer() {
+    void transfer_shouldSucceed_whenDataIsValid() {
         WalletType type = walletTypeRepository.save(createWalletType());
 
         Wallet from = createWallet("Sender", type, new BigDecimal("100.00"));
         Wallet to = createWallet("Receiver", type, BigDecimal.ZERO);
 
-        walletService.transfer(from.getUid().toString(), to.getUid().toString(), new BigDecimal("60.00"), new BigDecimal("60.00"));
+        walletService.transfer(from.getUid(), to.getUid(), new BigDecimal("60.00"), new BigDecimal("60.00"));
 
         Wallet updatedFrom = walletRepository.findById(from.getUid()).orElseThrow();
         Wallet updatedTo = walletRepository.findById(to.getUid()).orElseThrow();
@@ -134,39 +136,39 @@ public class WalletServiceImplIntegrationTest {
     }
 
     @Test
-    void testTransferSameWalletThrowsException() {
+    void transfer_shouldFail_whenSameWalletProvided() {
         WalletType type = createWalletType();
         Wallet wallet = createWallet("Same", type, new BigDecimal("50.00"));
 
         assertThrows(TransferSameWalletsException.class, () ->
-                walletService.transfer(wallet.getUid().toString(), wallet.getUid().toString(), BigDecimal.TEN, BigDecimal.TEN)
+                walletService.transfer(wallet.getUid(), wallet.getUid(), BigDecimal.TEN, BigDecimal.TEN)
         );
     }
 
     @Test
-    void testTransfer_WalletStatusThrowsException() {
+    void transfer_shouldFail_whenSenderWalletIsArchived() {
         WalletType type = createWalletType();
         Wallet from = createWallet("from", type, new BigDecimal("50.00"), WalletStatus.ARCHIVED);
         Wallet to = createWallet("to", type, new BigDecimal("50.00"));
 
         assertThrows(WalletStatusException.class, () ->
-                walletService.transfer(from.getUid().toString(), to.getUid().toString(), BigDecimal.TEN, BigDecimal.TEN)
+                walletService.transfer(from.getUid(), to.getUid(), BigDecimal.TEN, BigDecimal.TEN)
         );
     }
 
     @Test
-    void testTransfer_WalletBalanceThrowsException() {
+    void transfer_shouldFail_whenSenderHasInsufficientBalance() {
         WalletType type = createWalletType();
         Wallet from = createWallet("from", type, new BigDecimal("50.00"));
         Wallet to = createWallet("to", type, new BigDecimal("50.00"));
 
         assertThrows(WalletBalanceException.class, () ->
-                walletService.transfer(from.getUid().toString(), to.getUid().toString(), BigDecimal.valueOf(100), BigDecimal.valueOf(100))
+                walletService.transfer(from.getUid(), to.getUid(), BigDecimal.valueOf(100), BigDecimal.valueOf(100))
         );
     }
 
     @Test
-    void stressTestConcurrentTransfers_shouldMaintainCorrectBalances() throws InterruptedException {
+    void transfer_shouldMaintainBalanceIntegrity_underConcurrentAccess() throws InterruptedException {
         WalletType type = walletTypeRepository.save(createWalletType());
 
         Wallet from = walletRepository.save(createWallet("Sender", type, new BigDecimal("1000.00")));
@@ -184,8 +186,8 @@ public class WalletServiceImplIntegrationTest {
                 executor.submit(() -> {
                     try {
                         walletService.transfer(
-                                from.getUid().toString(),
-                                to.getUid().toString(),
+                                from.getUid(),
+                                to.getUid(),
                                 amountPerTransfer,
                                 amountPerTransfer
                         );

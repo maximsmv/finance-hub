@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,12 +25,12 @@ public class WalletRestControllerV1 {
     }
 
     @GetMapping("/{walletUid}")
-    public WalletResponse getWalletByUid(@PathVariable String walletUid) {
+    public WalletResponse getWalletByUid(@Valid @PathVariable UUID walletUid) {
         return walletService.getWalletByUid(walletUid);
     }
 
     @GetMapping("/user/{userUid}")
-    public List<WalletResponse> getWalletsByUser(@PathVariable String userUid) {
+    public List<WalletResponse> getWalletsByUser(@Valid @PathVariable UUID userUid) {
         return walletService.getWalletsByUser(userUid);
     }
 

@@ -69,7 +69,7 @@ class TransactionServiceImplTest {
 
     @Test
     void initDeposit_shouldCalculateFeeAndReturnResponse() {
-        String walletUid = String.valueOf(UUID.randomUUID());
+        UUID walletUid = UUID.randomUUID();
         var request = new DepositInitRequest();
         request.setWalletUid(walletUid);
         request.setAmount(BigDecimal.valueOf(100));
@@ -90,7 +90,7 @@ class TransactionServiceImplTest {
 
     @Test
     void initWithdrawal_shouldFailIfWalletBlocked() {
-        String walletUid = String.valueOf(UUID.randomUUID());
+        UUID walletUid = UUID.randomUUID();
         var request = new WithdrawalInitRequest();
         request.setWalletUid(walletUid);
         request.setAmount(BigDecimal.valueOf(50));
@@ -109,9 +109,9 @@ class TransactionServiceImplTest {
 
     @Test
     void initTransfer_shouldReturnCorrectResponse() {
-        String fromUid = UUID.randomUUID().toString();
-        String toUid = UUID.randomUUID().toString();
-        String userUid = UUID.randomUUID().toString();
+        UUID fromUid = UUID.randomUUID();
+        UUID toUid = UUID.randomUUID();
+        UUID userUid = UUID.randomUUID();
 
         var request = new TransferInitRequest();
         request.setFromWalletUid(fromUid);
@@ -140,7 +140,7 @@ class TransactionServiceImplTest {
         assertEquals(BigDecimal.valueOf(5), result.getFee());
         assertEquals(BigDecimal.valueOf(105.00).setScale(2, RoundingMode.HALF_EVEN), result.getTotalAmount());
 
-        Mockito.verify(transactionValidation).validateTransfer(fromWallet, toWallet, BigDecimal.valueOf(105.00).setScale(2));
+        Mockito.verify(transactionValidation).validateTransfer(fromWallet, toWallet, BigDecimal.valueOf(105.00).setScale(2, RoundingMode.HALF_EVEN));
     }
 
     @Test
@@ -149,16 +149,16 @@ class TransactionServiceImplTest {
         UUID userUid = UUID.randomUUID();
 
         var request = new DepositConfirmRequest();
-        request.setWalletUid(String.valueOf(walletUid));
+        request.setWalletUid(walletUid);
         request.setAmount(BigDecimal.valueOf(100));
         request.setCurrency("RUB");
         request.setComment("comment");
 
         var wallet = new WalletResponse();
-        wallet.setWalletUid(String.valueOf(walletUid));
+        wallet.setWalletUid(walletUid);
         wallet.setBalance(BigDecimal.valueOf(100));
         wallet.setCurrency("RUB");
-        wallet.setUserUid(String.valueOf(userUid));
+        wallet.setUserUid(userUid);
 
         var payment = new PaymentRequest();
         payment.setUid(UUID.randomUUID());
@@ -169,7 +169,7 @@ class TransactionServiceImplTest {
         payment.setStatus(PENDING);
         payment.setType(PaymentType.DEPOSIT);
 
-        Mockito.when(walletService.getWalletByUid(String.valueOf(walletUid))).thenReturn(wallet);
+        Mockito.when(walletService.getWalletByUid(walletUid)).thenReturn(wallet);
         Mockito.when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.valueOf(2));
         Mockito.when(paymentRequestMapper.fromDeposit(
                 any(), any(), any(), any(), any(), any())
@@ -180,14 +180,14 @@ class TransactionServiceImplTest {
 
         Mockito.verify(paymentRequestRepository).save(payment);
         Mockito.verify(depositRequestedProducer).send(any(DepositRequestedPayload.class));
-        assertEquals(payment.getUid().toString(), response.getTransactionUid());
+        assertEquals(payment.getUid(), response.getTransactionUid());
         assertEquals(TransactionConfirmResponse.StatusEnum.CONFIRMED, response.getStatus());
     }
 
     @Test
     void confirmWithdrawal_shouldSaveRequestAndSendKafka() {
-        String walletUid = UUID.randomUUID().toString();
-        String userUid = UUID.randomUUID().toString();
+        UUID walletUid = UUID.randomUUID();
+        UUID userUid = UUID.randomUUID();
 
         var request = new WithdrawalConfirmRequest();
         request.setWalletUid(walletUid);
@@ -220,15 +220,15 @@ class TransactionServiceImplTest {
         Mockito.verify(paymentRequestRepository).flush();
         Mockito.verify(withdrawalRequestedProducer).send(payload);
 
-        assertEquals(payment.getUid().toString(), result.getTransactionUid());
+        assertEquals(payment.getUid(), result.getTransactionUid());
         assertEquals(TransactionConfirmResponse.StatusEnum.CONFIRMED, result.getStatus());
     }
 
     @Test
     void confirmTransfer_shouldCreateTwoTransactions() {
-        String toWalletUid = String.valueOf(UUID.randomUUID());
-        String fromWalletUid = String.valueOf(UUID.randomUUID());
-        String userUid = String.valueOf(UUID.randomUUID());
+        UUID toWalletUid = UUID.randomUUID();
+        UUID fromWalletUid = UUID.randomUUID();
+        UUID userUid = UUID.randomUUID();
 
         var request = new TransferConfirmRequest();
         request.setWalletUid(fromWalletUid);
@@ -266,12 +266,12 @@ class TransactionServiceImplTest {
 
         Mockito.verify(walletService).transfer(fromWalletUid, toWalletUid, BigDecimal.valueOf(55).setScale(2, RoundingMode.HALF_EVEN), BigDecimal.valueOf(50));
         Mockito.verify(paymentRequestRepository, Mockito.times(2)).save(any());
-        assertEquals(debit.getUid().toString(), result.getTransactionUid());
+        assertEquals(debit.getUid(), result.getTransactionUid());
     }
 
     @Test
     void confirmTransfer_shouldThrowIfWalletsAreSame() {
-        var walletUid = UUID.randomUUID().toString();
+        var walletUid = UUID.randomUUID();
 
         var request = new TransferConfirmRequest();
         request.setWalletUid(walletUid);
@@ -280,7 +280,7 @@ class TransactionServiceImplTest {
 
         var wallet = new WalletResponse();
         wallet.setWalletUid(walletUid);
-        wallet.setUserUid(UUID.randomUUID().toString());
+        wallet.setUserUid(UUID.randomUUID());
         wallet.setBalance(BigDecimal.valueOf(500));
         wallet.setStatus(WalletStatus.ACTIVE.getValue());
 
@@ -303,12 +303,12 @@ class TransactionServiceImplTest {
 
         Mockito.when(paymentRequestRepository.findById(transactionId)).thenReturn(Optional.of(entity));
         Mockito.when(paymentRequestMapper.toTransactionStatusResponse(entity))
-                .thenReturn(new TransactionStatusResponse().transactionUid(transactionId.toString()).status(COMPLETED.getValue()));
+                .thenReturn(new TransactionStatusResponse().transactionUid(transactionId).status(COMPLETED.getValue()));
 
         var result = transactionService.getTransactionStatus(transactionId.toString());
 
         assertEquals(COMPLETED.getValue(), result.getStatus());
-        assertEquals(transactionId.toString(), result.getTransactionUid());
+        assertEquals(transactionId, result.getTransactionUid());
     }
 
     @Test

@@ -42,7 +42,7 @@ class WalletServiceImplTest {
     void createWallet_shouldSaveWalletAndReturnResponse() {
         UUID walletTypeUid = UUID.randomUUID();
         CreateWalletRequest request = new CreateWalletRequest();
-        request.setWalletTypeUid(walletTypeUid.toString());
+        request.setWalletTypeUid(walletTypeUid);
 
         WalletType walletType = new WalletType();
         Wallet wallet = new Wallet();
@@ -69,7 +69,7 @@ class WalletServiceImplTest {
         Mockito.when(walletRepository.findById(walletUid)).thenReturn(Optional.of(wallet));
         Mockito.when(walletMapper.toResponse(wallet)).thenReturn(response);
 
-        WalletResponse result = walletService.getWalletByUid(walletUid.toString());
+        WalletResponse result = walletService.getWalletByUid(walletUid);
         assertEquals(response, result);
     }
 
@@ -77,7 +77,7 @@ class WalletServiceImplTest {
     void getWalletByUid_shouldThrowIfNotFound() {
         UUID walletUid = UUID.randomUUID();
         Mockito.when(walletRepository.findById(walletUid)).thenReturn(Optional.empty());
-        assertThrows(EntityNotFoundException.class, () -> walletService.getWalletByUid(walletUid.toString()));
+        assertThrows(EntityNotFoundException.class, () -> walletService.getWalletByUid(walletUid));
     }
 
     @Test
@@ -89,7 +89,7 @@ class WalletServiceImplTest {
         Mockito.when(walletRepository.findByUserUid(userUid)).thenReturn(wallets);
         Mockito.when(walletMapper.toResponse(any(Wallet.class))).thenReturn(responses.get(0), responses.get(1));
 
-        List<WalletResponse> result = walletService.getWalletsByUser(userUid.toString());
+        List<WalletResponse> result = walletService.getWalletsByUser(userUid);
         assertEquals(2, result.size());
     }
 
@@ -97,7 +97,7 @@ class WalletServiceImplTest {
     void getWalletsByUser_shouldEmptyListIfNotFound() {
         UUID userUid = UUID.randomUUID();
         Mockito.when(walletRepository.findByUserUid(userUid)).thenReturn(List.of());
-        List<WalletResponse> responses = walletService.getWalletsByUser(userUid.toString());
+        List<WalletResponse> responses = walletService.getWalletsByUser(userUid);
         assertEquals(List.of(), responses);
     }
 
@@ -119,7 +119,7 @@ class WalletServiceImplTest {
         Mockito.when(walletRepository.findForUpdate(fromUid)).thenReturn(Optional.of(from));
         Mockito.when(walletRepository.findForUpdate(toUid)).thenReturn(Optional.of(to));
 
-        walletService.transfer(fromUid.toString(), toUid.toString(), BigDecimal.valueOf(30), BigDecimal.valueOf(25));
+        walletService.transfer(fromUid, toUid, BigDecimal.valueOf(30), BigDecimal.valueOf(25));
 
         assertEquals(new BigDecimal("70.00"), from.getBalance());
         assertEquals(new BigDecimal("75.00"), to.getBalance());
@@ -147,7 +147,7 @@ class WalletServiceImplTest {
         Mockito.when(walletRepository.findForUpdate(toUid)).thenReturn(Optional.of(to));
 
         assertThrows(WalletBalanceException.class, () ->
-                walletService.transfer(fromUid.toString(), toUid.toString(), BigDecimal.valueOf(100), BigDecimal.valueOf(95)));
+                walletService.transfer(fromUid, toUid, BigDecimal.valueOf(100), BigDecimal.valueOf(95)));
     }
 
 }

@@ -9,11 +9,12 @@ import com.advanced.transactionservice.model.WalletStatus;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.UUID;
 
 public class WalletValidation {
 
     public static void checkWalletBalance(WalletResponse wallet, BigDecimal totalAmount) {
-        checkWalletBalance(wallet.getBalance(), totalAmount);
+        checkWalletBalance(Objects.requireNonNull(wallet.getBalance()), totalAmount);
     }
 
     public static void checkWalletBalance(Wallet wallet, BigDecimal totalAmount) {
@@ -25,7 +26,7 @@ public class WalletValidation {
     }
 
     public static void checkWalletStatus(Wallet wallet) {
-        checkWalletStatus(wallet.getStatus().getValue(), String.valueOf(wallet.getUid()));
+        checkWalletStatus(wallet.getStatus().getValue(), wallet.getUid());
     }
 
     private static void checkWalletBalance(BigDecimal balance, BigDecimal totalAmount) {
@@ -34,7 +35,7 @@ public class WalletValidation {
         }
     }
 
-    public static void checkWalletStatus(String status, String uid) {
+    public static void checkWalletStatus(String status, UUID uid) {
         if (!WalletStatus.ACTIVE.getValue().equalsIgnoreCase(status)) {
             throw new WalletStatusException(WalletStatus.valueOf(status), uid);
         }

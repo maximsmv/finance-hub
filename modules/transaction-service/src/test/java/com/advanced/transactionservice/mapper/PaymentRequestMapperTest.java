@@ -79,7 +79,7 @@ class PaymentRequestMapperTest {
 
         var response = mapper.toTransactionStatusResponse(entity);
 
-        assertEquals(id.toString(), response.getTransactionUid());
+        assertEquals(id, response.getTransactionUid());
         assertEquals(PaymentStatus.COMPLETED.getValue(), response.getStatus());
         assertEquals(TransactionStatusResponse.TypeEnum.TRANSFER, response.getType());
         assertEquals(new BigDecimal("77.77"), response.getAmount());

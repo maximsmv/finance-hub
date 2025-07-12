@@ -14,7 +14,7 @@ import java.util.Currency;
 @Mapper(componentModel = "spring", imports = OffsetDateTime.class)
 public interface KafkaPayloadMapper {
 
-    @Mapping(target = "transactionId", expression = "java(payment.getUid().toString())")
+    @Mapping(target = "transactionId", expression = "java(payment.getTransactionUid().toString())")
     @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
     @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
 //    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
@@ -22,7 +22,7 @@ public interface KafkaPayloadMapper {
     @Mapping(target = "timestamp", expression = "java(OffsetDateTime.now())")
     DepositRequestedPayload toDepositRequestedPayload(PaymentRequest payment);
 
-    @Mapping(target = "transactionId", expression = "java(payment.getUid().toString())")
+    @Mapping(target = "transactionId", expression = "java(payment.getTransactionUid().toString())")
     @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
     @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
 //    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")

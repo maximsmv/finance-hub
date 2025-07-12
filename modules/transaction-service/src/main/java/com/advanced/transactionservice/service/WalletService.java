@@ -9,13 +9,14 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface WalletService {
     WalletResponse createWallet(@Valid CreateWalletRequest request);
 
-    WalletResponse getWalletByUid(String walletUid);
+    WalletResponse getWalletByUid(UUID walletUid);
 
-    List<WalletResponse> getWalletsByUser(String userUid);
+    List<WalletResponse> getWalletsByUser(UUID userUid);
 
-    void transfer(String fromWalletUid, String toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount);
+    void transfer(UUID fromWalletUid, UUID toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount);
 }

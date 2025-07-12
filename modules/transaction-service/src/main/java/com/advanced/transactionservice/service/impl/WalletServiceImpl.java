@@ -33,7 +33,7 @@ public class WalletServiceImpl implements WalletService {
     @Override
     @Transactional
     public WalletResponse createWallet(CreateWalletRequest request) {
-        WalletType walletType = walletTypeService.getWalletType(UUID.fromString(Objects.requireNonNull(request.getWalletTypeUid())))
+        WalletType walletType = walletTypeService.getWalletType(request.getWalletTypeUid())
                 .orElseThrow(() -> new IllegalArgumentException("Wallet type not found"));
 
         Wallet wallet = walletMapper.toEntity(request);
@@ -46,16 +46,16 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional(readOnly = true)
-    public WalletResponse getWalletByUid(String walletUid) {
-        Wallet wallet = walletRepository.findById(UUID.fromString(walletUid))
+    public WalletResponse getWalletByUid(UUID walletUid) {
+        Wallet wallet = walletRepository.findById(walletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
         return walletMapper.toResponse(wallet);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<WalletResponse> getWalletsByUser(String userUid) {
-        return Optional.ofNullable(walletRepository.findByUserUid(UUID.fromString(userUid)))
+    public List<WalletResponse> getWalletsByUser(UUID userUid) {
+        return Optional.ofNullable(walletRepository.findByUserUid(userUid))
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(walletMapper::toResponse)
@@ -64,10 +64,10 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public synchronized void transfer(String fromWalletUid, String toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount) {
-        Wallet from = walletRepository.findForUpdate(UUID.fromString(fromWalletUid))
+    public synchronized void transfer(UUID fromWalletUid, UUID toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount) {
+        Wallet from = walletRepository.findForUpdate(fromWalletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
-        Wallet to = walletRepository.findForUpdate(UUID.fromString(toWalletUid))
+        Wallet to = walletRepository.findForUpdate(toWalletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
 
         WalletValidation.validateTransfer(from, to, debitAmount);
