@@ -30,7 +30,8 @@ public interface PaymentRequestMapper {
     @Mapping(target = "processedAt", ignore = true)
     @Mapping(target = "expiresAt", ignore = true)
     @Mapping(target = "walletUid", source = "walletUid")
-    @Mapping(target = "amount", source = "totalAmount")
+    @Mapping(target = "amount", source = "amount")
+    @Mapping(target = "fee", source = "fee")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "comment", expression = "java(request.getComment())")
     @Mapping(target = "type", source = "type")
@@ -39,7 +40,8 @@ public interface PaymentRequestMapper {
             DepositConfirmRequest request,
             UUID walletUid,
             UUID userUid,
-            BigDecimal totalAmount,
+            BigDecimal amount,
+            BigDecimal fee,
             PaymentStatus status,
             PaymentType type
     );
@@ -52,7 +54,8 @@ public interface PaymentRequestMapper {
     @Mapping(target = "processedAt", ignore = true)
     @Mapping(target = "expiresAt", ignore = true)
     @Mapping(target = "walletUid", source = "walletUid")
-    @Mapping(target = "amount", source = "totalAmount")
+    @Mapping(target = "amount", source = "amount")
+    @Mapping(target = "fee", source = "fee")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "comment", expression = "java(request.getComment())")
     @Mapping(target = "type", source = "type")
@@ -61,7 +64,8 @@ public interface PaymentRequestMapper {
             WithdrawalConfirmRequest request,
             UUID walletUid,
             UUID userUid,
-            BigDecimal totalAmount,
+            BigDecimal amount,
+            BigDecimal fee,
             PaymentStatus status,
             PaymentType type
     );
@@ -72,9 +76,11 @@ public interface PaymentRequestMapper {
     @Mapping(target = "failureReason", ignore = true)
     @Mapping(target = "processedAt", ignore = true)
     @Mapping(target = "expiresAt", ignore = true)
+    @Mapping(target = "transactionUid", ignore = true)
     @Mapping(target = "walletUid", source = "fromWalletUid")
     @Mapping(target = "targetWalletUid", source = "toWalletUid")
-    @Mapping(target = "amount", source = "totalAmount")
+    @Mapping(target = "amount", source = "amount")
+    @Mapping(target = "fee", source = "fee")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "comment", expression = "java(request.getComment())")
     @Mapping(target = "type", source = "type")
@@ -84,7 +90,8 @@ public interface PaymentRequestMapper {
             UUID fromWalletUid,
             UUID toWalletUid,
             UUID userUid,
-            BigDecimal totalAmount,
+            BigDecimal amount,
+            BigDecimal fee,
             PaymentStatus status,
             PaymentType type
     );

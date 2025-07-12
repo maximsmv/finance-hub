@@ -50,12 +50,15 @@ public class PaymentRequest {
     @Column(name = "target_wallet_uid")
     private UUID targetWalletUid;
 
+    @ManyToOne
+    @JoinColumn(name = "transfer_operation_uid")
+    private TransferOperation transferOperation;
+
     private Currency currency;
 
     @Column(length = 256)
     private String failureReason;
 
-    @Column(nullable = false)
     private UUID transactionUid;
 
     @Column(nullable = false, length = 20)

@@ -5,7 +5,10 @@ import com.advanced.transactionservice.exception.TransactionConflictException;
 import com.advanced.transactionservice.mapper.KafkaPayloadMapper;
 import com.advanced.transactionservice.mapper.PaymentRequestMapper;
 import com.advanced.transactionservice.model.PaymentRequest;
+import com.advanced.transactionservice.model.TransferOperation;
+import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.repository.TransferOperationRepository;
 import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.service.TransactionService;
 import com.advanced.transactionservice.service.WalletService;
@@ -45,6 +48,8 @@ public class TransactionServiceImpl implements TransactionService {
     private final PaymentRequestMapper paymentRequestMapper;
 
     private final PaymentRequestRepository paymentRequestRepository;
+
+    private final TransferOperationRepository transferOperationRepository;
 
     private final DepositRequestedProducer depositRequestedProducer;
 
@@ -116,7 +121,8 @@ public class TransactionServiceImpl implements TransactionService {
                 request,
                 wallet.getWalletUid(),
                 wallet.getUserUid(),
-                totalAmount,
+                request.getAmount(),
+                fee,
                 PENDING,
                 DEPOSIT
         );
@@ -133,7 +139,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         depositRequestedProducer.send(kafkaPayloadMapper.toDepositRequestedPayload(payment));
 
-        return getConfirmResponse(payment.getUid());
+        return getConfirmResponse(payment.getTransactionUid());
     }
 
     @Override
@@ -150,7 +156,8 @@ public class TransactionServiceImpl implements TransactionService {
                 request,
                 wallet.getWalletUid(),
                 wallet.getUserUid(),
-                totalAmount,
+                request.getAmount(),
+                fee,
                 PENDING,
                 WITHDRAWAL
         );
@@ -167,7 +174,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         withdrawalRequestedProducer.send(kafkaPayloadMapper.toWithdrawalRequestedPayload(payment));
 
-        return getConfirmResponse(payment.getUid());
+        return getConfirmResponse(payment.getTransactionUid());
     }
 
     @Override
@@ -181,12 +188,20 @@ public class TransactionServiceImpl implements TransactionService {
 
         walletService.transfer(fromWallet.getWalletUid(), toWallet.getWalletUid(), totalAmount, request.getAmount());
 
+        return createNewTransferOperation(request, fromWallet, toWallet, fee);
+    }
+
+    private TransactionConfirmResponse createNewTransferOperation(TransferConfirmRequest request, WalletResponse fromWallet, WalletResponse toWallet, BigDecimal fee) {
+        TransferOperation operation = new TransferOperation();
+        operation.setTransactionUid(request.getTransactionUid());
+
         PaymentRequest debitRequest = paymentRequestMapper.fromTransfer(
                 request,
                 fromWallet.getWalletUid(),
                 toWallet.getWalletUid(),
                 fromWallet.getUserUid(),
-                totalAmount,
+                request.getAmount(),
+                fee,
                 COMPLETED,
                 TRANSFER
         );
@@ -198,14 +213,24 @@ public class TransactionServiceImpl implements TransactionService {
                 fromWallet.getWalletUid(),
                 toWallet.getUserUid(),
                 request.getAmount(),
+                BigDecimal.ZERO,
                 COMPLETED,
                 TRANSFER
         );
         paymentRequestRepository.save(creditRequest);
 
-        paymentRequestRepository.flush();
+        operation.setPaymentRequests(List.of(debitRequest, creditRequest));
 
-        return getConfirmResponse(debitRequest.getUid());
+        try {
+            transferOperationRepository.save(operation);
+        } catch (DataIntegrityViolationException ex) {
+            if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
+                throw new TransactionConflictException();
+            }
+            throw ex;
+        }
+
+        return getConfirmResponse(operation.getTransactionUid());
     }
 
     @Override
@@ -242,9 +267,9 @@ public class TransactionServiceImpl implements TransactionService {
         return response;
     }
 
-    private static TransactionConfirmResponse getConfirmResponse(UUID payment) {
+    private static TransactionConfirmResponse getConfirmResponse(UUID transactionUid) {
         TransactionConfirmResponse response = new TransactionConfirmResponse();
-        response.setTransactionUid(payment);
+        response.setTransactionUid(transactionUid);
         response.setStatus(CONFIRMED);
         return response;
     }

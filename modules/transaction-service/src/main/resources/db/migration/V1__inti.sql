@@ -21,11 +21,14 @@ CREATE TABLE wallets (
     wallet_type_uid UUID NOT NULL REFERENCES wallet_types(uid),
     user_uid UUID NOT NULL,
     status VARCHAR(30) NOT NULL,
-    balance DECIMAL NOT NULL DEFAULT 0.0,
+    balance DECIMAL(20, 2) NOT NULL DEFAULT 0.00,
     archived_at TIMESTAMP
 );
 
-CREATE TYPE payment_type AS ENUM ('DEPOSIT', 'WITHDRAWAL', 'TRANSFER');
+CREATE TABLE transfer_operations (
+    uid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_uid UUID NOT NULL
+);
 
 CREATE TABLE payment_requests (
     uid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -33,14 +36,15 @@ CREATE TABLE payment_requests (
     modified_at TIMESTAMP,
     user_uid UUID NOT NULL,
     wallet_uid UUID NOT NULL REFERENCES wallets(uid),
-    amount DECIMAL NOT NULL DEFAULT 0.0,
+    amount DECIMAL(20, 2) NOT NULL,
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL,
     status VARCHAR(32) NOT NULL,
     comment VARCHAR(256),
-    fee DECIMAL,
+    fee DECIMAL(20, 2),
     target_wallet_uid UUID,
-    transaction_uid UUID NOT NULL, -- ключ идемпотентности, получается из init операции
+    transaction_uid UUID,
+    transfer_operation_uid UUID REFERENCES transfer_operations(uid),
     failure_reason VARCHAR(256),
     expires_at TIMESTAMP,
     processed_at TIMESTAMP
@@ -49,3 +53,4 @@ CREATE TABLE payment_requests (
 CREATE INDEX idx_payment_requests_wallet_uid ON payment_requests(wallet_uid);
 CREATE INDEX idx_payment_requests_user_uid ON payment_requests(user_uid);
 CREATE UNIQUE INDEX uq_payment_requests_transaction_uid ON payment_requests(transaction_uid);
+CREATE UNIQUE INDEX uq_transfer_operations_transaction_uid ON transfer_operations(transaction_uid);

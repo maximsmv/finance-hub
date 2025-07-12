@@ -172,7 +172,7 @@ class TransactionServiceImplTest {
         Mockito.when(walletService.getWalletByUid(walletUid)).thenReturn(wallet);
         Mockito.when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.valueOf(2));
         Mockito.when(paymentRequestMapper.fromDeposit(
-                any(), any(), any(), any(), any(), any())
+                any(), any(), any(), any(), any(), any(), any())
         ).thenReturn(payment);
         Mockito.when(kafkaPayloadMapper.toDepositRequestedPayload(any())).thenReturn(new DepositRequestedPayload());
 
@@ -208,7 +208,7 @@ class TransactionServiceImplTest {
 
         Mockito.when(walletService.getWalletByUid(walletUid)).thenReturn(wallet);
         Mockito.when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.valueOf(5));
-        Mockito.when(paymentRequestMapper.fromWithdrawal(any(), any(), any(), any(), any(), any()))
+        Mockito.when(paymentRequestMapper.fromWithdrawal(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(payment);
 
         var payload = new WithdrawalRequestedPayload();
@@ -259,7 +259,7 @@ class TransactionServiceImplTest {
         Mockito.when(walletService.getWalletByUid(fromWalletUid)).thenReturn(from);
         Mockito.when(walletService.getWalletByUid(toWalletUid)).thenReturn(to);
         Mockito.when(calculationFeeService.calculationTransferFee()).thenReturn(BigDecimal.valueOf(5));
-        Mockito.when(paymentRequestMapper.fromTransfer(any(), any(), any(), any(), any(), any(), any()))
+        Mockito.when(paymentRequestMapper.fromTransfer(any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(debit).thenReturn(credit);
 
         var result = transactionService.confirmTransfer(request);

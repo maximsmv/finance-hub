@@ -355,6 +355,11 @@ components:
         amount:
           type: number
           format: BigDecimal
+          minimum: 1
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: "ISO 4217 currency code, e.g. 'USD', 'EUR'"
         comment:
           type: string
     TransactionInitResponse:

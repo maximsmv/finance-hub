@@ -30,6 +30,7 @@ class PaymentRequestMapperTest {
                 walletUid,
                 userUid,
                 new BigDecimal("100.00"),
+                new BigDecimal("0.00"),
                 PaymentStatus.PENDING,
                 PaymentType.DEPOSIT
         );
@@ -57,6 +58,7 @@ class PaymentRequestMapperTest {
                 toWallet,
                 user,
                 new BigDecimal("250.00"),
+                new BigDecimal("0.00"),
                 PaymentStatus.COMPLETED,
                 PaymentType.TRANSFER
         );
