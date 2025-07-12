@@ -3,6 +3,7 @@ package com.advanced.transactionservice.controller.transaction.confirm;
 import com.advanced.contract.model.TransferConfirmRequest;
 import com.advanced.transactionservice.model.TransferOperation;
 import com.advanced.transactionservice.model.Wallet;
+import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.repository.PaymentRequestRepository;
 import com.advanced.transactionservice.repository.TransferOperationRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -28,6 +30,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,6 +96,8 @@ public class ConfirmTransferRestControllerV1Test {
 
     @BeforeEach
     void setup() {
+        paymentRequestRepository.deleteAll();
+        transferOperationRepository.deleteAll();
         walletRepository.deleteAll();
     }
 
@@ -101,8 +106,8 @@ public class ConfirmTransferRestControllerV1Test {
         BigDecimal initialBalance = new BigDecimal("500.00");
         BigDecimal transferAmount = new BigDecimal("200.00");
 
-        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "source", initialBalance);
-        Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "target", BigDecimal.ZERO);
+        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "from", initialBalance);
+        Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "to", BigDecimal.ZERO);
 
         TransferConfirmRequest request = new TransferConfirmRequest();
         request.setTransactionUid(UUID.randomUUID());
@@ -130,6 +135,180 @@ public class ConfirmTransferRestControllerV1Test {
         assertNotNull(transferOperationRepository.findByTransactionUid((request.getTransactionUid())));
     }
 
+    @Test
+    void confirmTransfer_shouldReturnBadRequest_whenNotEnoughBalance() {
+        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "from", BigDecimal.valueOf(50));
+        Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "to", BigDecimal.ZERO);
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(fromWallet.getUid());
+        request.setTargetWalletUid(toWallet.getUid());
+        request.setAmount(BigDecimal.valueOf(100));
+        request.setCurrency("RUB");
+        request.setComment("Too much");
+        request.setTransactionUid(UUID.randomUUID());
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(BigDecimal.ZERO);
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnNotFound_whenSourceWalletNotFound() {
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(UUID.randomUUID());
+        request.setTargetWalletUid(UUID.randomUUID());
+        request.setAmount(BigDecimal.valueOf(100));
+        request.setCurrency("RUB");
+        request.setTransactionUid(UUID.randomUUID());
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnNotFound_whenTargetWalletNotFound() {
+        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "from", BigDecimal.valueOf(500));
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(fromWallet.getUid());
+        request.setTargetWalletUid(UUID.randomUUID());
+        request.setAmount(BigDecimal.valueOf(100));
+        request.setCurrency("RUB");
+        request.setTransactionUid(UUID.randomUUID());
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnBadRequest_whenSourceWalletIsBlocked() {
+        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "from", BigDecimal.valueOf(500), WalletStatus.BLOCKED);
+        Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "to", BigDecimal.ZERO);
+
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(fromWallet.getUid());
+        request.setTargetWalletUid(toWallet.getUid());
+        request.setAmount(BigDecimal.valueOf(100));
+        request.setCurrency("RUB");
+        request.setTransactionUid(UUID.randomUUID());
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnBadRequest_whenTargetWalletIsArchived() {
+        Wallet fromWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "from", BigDecimal.valueOf(500));
+        Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "to", BigDecimal.ZERO, WalletStatus.ARCHIVED);
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(fromWallet.getUid());
+        request.setTargetWalletUid(toWallet.getUid());
+        request.setAmount(BigDecimal.valueOf(100));
+        request.setCurrency("RUB");
+        request.setTransactionUid(UUID.randomUUID());
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void confirmTransfer_shouldBeIdempotent_whenSameTransactionUidIsUsed() {
+        UUID transactionUid = UUID.randomUUID();
+        Wallet sourceWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "source", BigDecimal.valueOf(100));
+        Wallet targetWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "target", BigDecimal.ZERO);
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(sourceWallet.getUid());
+        request.setTargetWalletUid(targetWallet.getUid());
+        request.setAmount(BigDecimal.valueOf(50));
+        request.setCurrency("RUB");
+        request.setComment("Idempotent test");
+        request.setTransactionUid(transactionUid);
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isOk();
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnBadRequest_whenTransferToSelf() {
+        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "same", BigDecimal.valueOf(100));
+
+        TransferConfirmRequest request = new TransferConfirmRequest();
+        request.setWalletUid(wallet.getUid());
+        request.setTargetWalletUid(wallet.getUid());
+        request.setAmount(BigDecimal.valueOf(50));
+        request.setCurrency("RUB");
+        request.setComment("Self transfer");
+        request.setTransactionUid(UUID.randomUUID());
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
+
+        webTestClient.post()
+                .uri("/api/v1/transactions/transfer/confirm")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void confirmTransfer_shouldReturnBadRequest_whenAmountIsZeroOrNegative() {
+        Wallet sourceWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "same", BigDecimal.valueOf(100));
+        Wallet targetWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "same", BigDecimal.ZERO);
+
+        List<BigDecimal> invalidAmounts = List.of(BigDecimal.ZERO, BigDecimal.valueOf(-10));
+
+        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
+
+        for (BigDecimal invalidAmount : invalidAmounts) {
+            TransferConfirmRequest request = new TransferConfirmRequest();
+            request.setWalletUid(sourceWallet.getUid());
+            request.setTargetWalletUid(targetWallet.getUid());
+            request.setAmount(invalidAmount);
+            request.setCurrency("RUB");
+            request.setComment("Invalid amount");
+            request.setTransactionUid(UUID.randomUUID());
+
+            webTestClient.post()
+                    .uri("/api/v1/transactions/transfer/confirm")
+                    .bodyValue(request)
+                    .exchange()
+                    .expectStatus().isBadRequest();
+        }
+    }
 
 
 }

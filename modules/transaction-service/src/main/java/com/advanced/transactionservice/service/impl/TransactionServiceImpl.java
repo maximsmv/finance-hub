@@ -162,8 +162,7 @@ public class TransactionServiceImpl implements TransactionService {
         );
 
         try {
-            paymentRequestRepository.save(payment);
-            paymentRequestRepository.flush();
+            paymentRequestRepository.saveAndFlush(payment);
         } catch (DataIntegrityViolationException ex) {
             if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
                 throw new TransactionConflictException();
@@ -221,7 +220,7 @@ public class TransactionServiceImpl implements TransactionService {
         operation.setPaymentRequests(List.of(debitRequest, creditRequest));
 
         try {
-            transferOperationRepository.save(operation);
+            transferOperationRepository.saveAndFlush(operation);
         } catch (DataIntegrityViolationException ex) {
             if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
                 throw new TransactionConflictException();

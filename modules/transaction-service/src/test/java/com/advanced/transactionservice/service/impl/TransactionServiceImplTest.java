@@ -221,8 +221,7 @@ class TransactionServiceImplTest {
 
         var result = transactionService.confirmWithdrawal(request);
 
-        Mockito.verify(paymentRequestRepository).save(payment);
-        Mockito.verify(paymentRequestRepository).flush();
+        Mockito.verify(paymentRequestRepository).saveAndFlush(payment);
         Mockito.verify(withdrawalRequestedProducer).send(payload);
 
         assertEquals(payment.getTransactionUid(), result.getTransactionUid());
@@ -269,7 +268,7 @@ class TransactionServiceImplTest {
 
         Mockito.verify(walletService).transfer(fromWalletUid, toWalletUid, BigDecimal.valueOf(55).setScale(2, RoundingMode.HALF_EVEN), BigDecimal.valueOf(50));
         Mockito.verify(paymentRequestRepository, Mockito.times(2)).save(any());
-        Mockito.verify(transferOperationRepository, Mockito.times(1)).save(any());
+        Mockito.verify(transferOperationRepository, Mockito.times(1)).saveAndFlush(any());
     }
 
     @Test
