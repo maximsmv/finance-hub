@@ -1,0 +1,110 @@
+@startuml
+package "transaction-service" {
+
+  package "REST Controllers" {
+    [TransactionRestControllerV1]
+    [WalletRestControllerV1]
+    [GlobalExceptionHandler (@ControllerAdvice)]
+  }
+
+  package "Services" {
+    [TransactionService]
+    [WalletService]
+    [WalletTypeService]
+    [CalculationFeeService]
+  }
+
+  package "Validation" {
+    [TransactionValidation]
+    [WalletValidation]
+  }
+
+  package "Repositories" {
+    [PaymentRequestRepository]
+    [TransferOperationRepository]
+    [WalletRepository]
+    [WalletTypeRepository]
+  }
+
+  package "KafkaProducers" {
+    [DepositRequestedProducer]
+    [WithdrawalRequestedProducer]
+  }
+
+  package "KafkaListeners" {
+    [DepositCompletedListener]
+    [WithdrawalCompletedListener]
+    [WithdrawalFailedListener]
+  }
+
+  package "Telemetry" {
+    [ActuatorEndpoints]
+    [OpenTelemetry]
+    [Logback (OpenTelemetryAppender)]
+  }
+
+  [JPA]
+  [Hibernate Envers]
+}
+
+package "Infrastructure" {
+    [PostgreSQL]
+    [Kafka]
+}
+
+package "Monitoring" {
+    [OTel Collector]
+    [Prometheus]
+    [Loki]
+    [Tempo]
+    [Grafana]
+}
+
+package "Deployment" {
+    [Docker]
+    [TestContainers]
+}
+
+package "Testing" {
+    [JUnit 5]
+    [Mockito]
+}
+
+[REST Controllers] --> [Services] : Обрабатывает HTTP запросы
+
+[Services] --> [Validation] : Валидация
+[Services] --> [Repositories] : Управление данными
+
+[TransactionService] --> [WalletService] : Получение данных о кошельках
+[TransactionService] --> [CalculationFeeService] : Подсчет комиссии по платежам
+[TransactionService] --> [KafkaProducers] : Отправка событий
+
+[KafkaProducers] --> [Kafka] : Регистрация событий
+
+[KafkaListeners] --> [Kafka] : Чтение события
+[KafkaListeners] --> [Repositories] : Обновление информации по платежу
+[KafkaListeners] --> [Services] : Проведение операций
+
+[Repositories] ..> [JPA] : Доступ к данным
+[Repositories] ..> [Hibernate Envers] : Аудит изменений
+
+[JPA] --> [PostgreSQL] : Хранилище данных
+[Hibernate Envers] --> [JPA] : Использует для записи аудита
+
+[Services] --> [ActuatorEndpoints] : Предоставление метрик
+[Services] --> [OpenTelemetry] : Трассировка запросов
+
+[Telemetry] --> [OTel Collector] : Забор метрик, трасс и логов
+
+[OTel Collector] --> [Prometheus] : Забор метрик
+[OTel Collector] --> [Tempo] : Отправка трасс
+[OTel Collector] --> [Loki] : Отправка логов
+[Tempo] --> [Grafana] : Просмотр трасс
+[Loki] --> [Grafana] : Просмотр логов
+[Prometheus] --> [Grafana] : Просмотр метрик
+
+[transaction-service] --> [Docker] : Развертывание
+[Services] --> [JUnit 5] : Юнит-тесты
+[Services] --> [Mockito] : Мокирование зависимостей
+[transaction-service] --> [TestContainers] : Интеграционные тесты
+@enduml

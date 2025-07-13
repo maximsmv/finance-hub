@@ -6,7 +6,6 @@ import com.advanced.transactionservice.mapper.KafkaPayloadMapper;
 import com.advanced.transactionservice.mapper.PaymentRequestMapper;
 import com.advanced.transactionservice.model.PaymentRequest;
 import com.advanced.transactionservice.model.TransferOperation;
-import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.repository.PaymentRequestRepository;
 import com.advanced.transactionservice.repository.TransferOperationRepository;
 import com.advanced.transactionservice.service.CalculationFeeService;
