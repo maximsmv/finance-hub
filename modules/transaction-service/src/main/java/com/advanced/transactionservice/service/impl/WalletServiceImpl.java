@@ -76,10 +76,31 @@ public class WalletServiceImpl implements WalletService {
         credit(to, creditAmount);
     }
 
+    @Override
+    @Transactional
+    public synchronized void deposit(UUID walletUid, BigDecimal creditAmount) {
+        Wallet wallet = walletRepository.findForUpdate(walletUid)
+                .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
+
+        WalletValidation.validateDeposit(wallet);
+
+        credit(wallet, creditAmount);
+    }
+
+    @Override
+    @Transactional
+    public synchronized void withdraw(UUID walletUid, BigDecimal debitAmount) {
+        Wallet wallet = walletRepository.findForUpdate(walletUid)
+                .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
+
+        WalletValidation.validateWithdrawal(wallet, debitAmount);
+
+        debit(wallet, debitAmount);
+    }
+
     private synchronized void debit(Wallet wallet, BigDecimal amount) {
         wallet.setBalance(wallet.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_EVEN));
         walletRepository.save(wallet);
-
     }
 
     private synchronized void credit(Wallet wallet, BigDecimal amount) {

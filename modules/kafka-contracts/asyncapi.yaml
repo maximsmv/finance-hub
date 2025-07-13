@@ -100,12 +100,9 @@ components:
       type: object
       required:
         - transactionId
-        - status
       properties:
         transactionId:
           type: string
-        status:
-          $ref: '#/components/schemas/TransactionStatus'
 
     WithdrawalRequestedPayload:
       type: object
@@ -138,12 +135,9 @@ components:
       type: object
       required:
         - transactionId
-        - status
       properties:
         transactionId:
           type: string
-        status:
-          $ref: '#/components/schemas/TransactionStatus'
 
     WithdrawalFailedPayload:
       type: object

@@ -10,15 +10,17 @@ import java.util.Objects;
 @Component
 public class TransactionValidation {
     public void validateDeposit(WalletResponse wallet) {
-        WalletValidation.checkWalletStatus(wallet);
+        //Какая-нибудь дополнительная проверка
+        WalletValidation.validateDeposit(wallet);
     }
 
     public void validateWithdrawal(WalletResponse wallet, BigDecimal totalAmount) {
-        WalletValidation.checkWalletStatus(wallet);
-        WalletValidation.checkWalletBalance(wallet, totalAmount);
+        //Какая-нибудь дополнительная проверка
+        WalletValidation.validateWithdrawal(wallet, totalAmount);
     }
 
     public void validateTransfer(WalletResponse fromWallet, WalletResponse toWallet, BigDecimal totalAmount) {
+        //Какая-нибудь дополнительная проверка
         WalletValidation.validateTransfer(fromWallet, toWallet, totalAmount);
     }
 }

@@ -38,7 +38,7 @@ ext {
 
 dependencies {
 	implementation project(':transaction-api-contract')
-	implementation 'com.advanced:kafka-contracts:1.0.4'
+	implementation 'com.advanced:kafka-contracts:1.0.5'
 
 	// ------------------------------ SPRING ------------------------------
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

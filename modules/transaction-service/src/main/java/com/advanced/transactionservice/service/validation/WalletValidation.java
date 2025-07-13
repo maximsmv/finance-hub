@@ -41,6 +41,24 @@ public class WalletValidation {
         }
     }
 
+    public static void validateWithdrawal(Wallet wallet, BigDecimal amount) {
+        WalletValidation.checkWalletStatus(wallet);
+        WalletValidation.checkWalletBalance(wallet, amount);
+    }
+
+    public static void validateWithdrawal(WalletResponse wallet, BigDecimal amount) {
+        WalletValidation.checkWalletStatus(wallet);
+        WalletValidation.checkWalletBalance(wallet, amount);
+    }
+
+    public static void validateDeposit(Wallet wallet) {
+        WalletValidation.checkWalletStatus(wallet);
+    }
+
+    public static void validateDeposit(WalletResponse wallet) {
+        WalletValidation.checkWalletStatus(wallet);
+    }
+
     public static void validateTransfer(Wallet fromWallet, Wallet toWallet, BigDecimal totalAmount) {
         checkEqualsWallet(fromWallet, toWallet);
         checkWalletStatus(fromWallet);
