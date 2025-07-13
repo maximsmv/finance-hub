@@ -1,0 +1,51 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_TOP_DOWN()
+
+Person(user, "Пользователь")
+
+System_Boundary(financehub, "Finance Hub") {
+
+  Container(individuals_api, "individuals-api", "Spring Boot", "API-шлюз. Обрабатывает регистрацию, логин, проксирует запросы к person- и transaction-сервисам. Интеграция с Keycloak. SAGA-оркестрация.")
+
+  Container(person_service, "person-service", "Spring Boot", "CRUD персональных данных. Работает с PostgreSQL.")
+
+  Container(transaction_service, "transaction-service", "Spring Boot", "Обработка транзакций и CRUD кошельков. Работает с PostgreSQL. Интеграция с Kafka.")
+
+  ContainerDb(person_db, "PostgreSQL (person)", "БД персональных данных")
+  ContainerDb(transaction_db, "PostgreSQL (transaction)", "БД транзакций и кошельков")
+
+  Container(otel_collector, "OpenTelemetry Collector", "OTel", "Сбор метрик, логов и трейсингов от всех сервисов")
+
+  Container(kafka, "Kafka", "Apache Kafka", "Брокер сообщений: публикация и подписка")
+}
+
+System_Ext(keycloak, "Keycloak", "Аутентификация (OIDC)")
+System_Ext(prometheus, "Prometheus", "Сбор метрик")
+System_Ext(grafana, "Grafana", "Визуализация метрик, логов и трейсингов")
+System_Ext(tempo, "Tempo", "Хранение трассировок")
+System_Ext(loki, "Loki", "Хранение логов")
+
+' Взаимодействие
+Rel(user, individuals_api, "HTTP-запросы (логин, регистрация, CRUD, транзакции)")
+Rel(individuals_api, keycloak, "Аутентификация / Авторизация", "OIDC")
+Rel(individuals_api, person_service, "Проксирует запросы", "REST")
+Rel(individuals_api, transaction_service, "Проксирует запросы", "REST")
+
+Rel(person_service, person_db, "Чтение и запись", "JDBC")
+Rel(transaction_service, transaction_db, "Чтение и запись", "JDBC")
+
+Rel(individuals_api, otel_collector, "Метрики, логи, трассировки", "OTLP")
+Rel(person_service, otel_collector, "Метрики, логи, трассировки", "OTLP")
+Rel(transaction_service, otel_collector, "Метрики, логи, трассировки", "OTLP")
+
+Rel(transaction_service, kafka, "Публикует и читает сообщения", "Kafka protocol")
+
+Rel(otel_collector, prometheus, "Метрики")
+Rel(otel_collector, tempo, "Трассировки")
+Rel(otel_collector, loki, "Логи")
+
+Rel(grafana, prometheus, "Метрики")
+Rel(grafana, tempo, "Трассировки")
+Rel(grafana, loki, "Логи")
+@enduml

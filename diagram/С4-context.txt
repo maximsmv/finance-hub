@@ -1,0 +1,43 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+LAYOUT_TOP_DOWN()
+
+' Пользователь
+Person(user, "Пользователь", "Регистрируется, логинится, управляет персональными данными, транзакциями и кошельками")
+
+' Система: Finance Hub
+System_Boundary(financehub, "Finance Hub") {
+  System(individuals_api, "individuals-api", "API-шлюз. Интеграция с Keycloak. Проксирует запросы к другим сервисам")
+  System(person_service, "person-service", "Управление персональными данными (CRUD)")
+  System(transaction_service, "transaction-service", "Работа с транзакциями, кошельками и интеграция с Kafka")
+}
+
+' Внешние системы
+System_Ext(keycloak, "Keycloak", "Аутентификация и авторизация пользователей (OIDC)")
+System_Ext(kafka, "Kafka", "Обмен сообщениями между микросервисами")
+System_Ext(prometheus, "Prometheus", "Сбор метрик")
+System_Ext(tempo, "Tempo", "Хранение трейсингов")
+System_Ext(loki, "Loki", "Хранение логов")
+System_Ext(grafana, "Grafana", "Дашборды метрик, логов и трейсингов")
+System_Ext(otel_collector, "OpenTelemetry Collector", "Централизованный сбор телеметрии")
+
+' Взаимодействия
+Rel(user, individuals_api, "Взаимодействует через HTTP")
+Rel(individuals_api, keycloak, "Аутентификация и авторизация", "OIDC")
+Rel(individuals_api, person_service, "Проксирует запросы", "REST")
+Rel(individuals_api, transaction_service, "Проксирует запросы", "REST")
+
+Rel(transaction_service, kafka, "Публикует и слушает сообщения", "Kafka protocol")
+
+Rel(person_service, otel_collector, "Отправляет телеметрию", "OTLP")
+Rel(individuals_api, otel_collector, "Отправляет телеметрию", "OTLP")
+Rel(transaction_service, otel_collector, "Отправляет телеметрию", "OTLP")
+
+Rel(otel_collector, prometheus, "Пушит метрики")
+Rel(otel_collector, tempo, "Пушит трассировки")
+Rel(otel_collector, loki, "Пушит логи")
+
+Rel(grafana, prometheus, "Считывает метрики")
+Rel(grafana, tempo, "Считывает трейсинги")
+Rel(grafana, loki, "Считывает логи")
+@enduml
