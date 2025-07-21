@@ -39,7 +39,7 @@
     },
     {
       "name": "destination",
-      "type": "string"
+      "type": ["null", "string"]
     },
     {
       "name": "timestamp",

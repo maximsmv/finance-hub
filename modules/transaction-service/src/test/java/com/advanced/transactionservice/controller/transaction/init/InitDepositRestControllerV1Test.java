@@ -1,21 +1,20 @@
 package com.advanced.transactionservice.controller.transaction.init;
 
 import com.advanced.contract.model.DepositInitRequest;
+import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -31,13 +30,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
+@ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-public class InitDepositRestControllerV1Test {
+public class InitDepositRestControllerV1Test extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -51,38 +50,7 @@ public class InitDepositRestControllerV1Test {
     @Autowired
     private TransactionRepository requestRepository;
 
-    private static final Network network = Network.newNetwork();
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withExposedPorts(5432)
-            .withDatabaseName("testdb")
-            .withUsername("user")
-            .withPassword("pass")
-            .withNetwork(network)
-            .withNetworkAliases("postgres");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
-
-    @BeforeAll
-    static void startContainers() {
-        postgres.start();
-    }
-
-    @AfterAll
-    static void tearDown() {
-        postgres.stop();
-    }
-
-    @BeforeEach
+    @AfterEach
     void setup() {
         walletRepository.deleteAll();
     }
@@ -102,7 +70,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.transactionUid").isNotEmpty();
+                .jsonPath("$.fee").isNotEmpty();
 
         List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());

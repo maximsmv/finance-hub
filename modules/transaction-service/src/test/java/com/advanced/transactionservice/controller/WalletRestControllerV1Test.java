@@ -2,19 +2,19 @@ package com.advanced.transactionservice.controller;
 
 import com.advanced.contract.model.CreateWalletRequest;
 import com.advanced.contract.model.WalletResponse;
+import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.advanced.transactionservice.utils.WalletUtils;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -31,13 +31,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
+@ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-class WalletRestControllerV1Test {
+class WalletRestControllerV1Test extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -48,52 +48,19 @@ class WalletRestControllerV1Test {
     @Autowired
     private WalletRepository walletRepository;
 
-    private static final Network network = Network.newNetwork();
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withExposedPorts(5432)
-            .withDatabaseName("testdb")
-            .withUsername("user")
-            .withPassword("pass")
-            .withNetwork(network)
-            .withNetworkAliases("postgres");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
-
-    @BeforeAll
-    static void startContainers() {
-        postgres.start();
-    }
-
-    @AfterAll
-    static void tearDown() {
-        postgres.stop();
-    }
-
-    @BeforeEach
+    @AfterEach
     void setup() {
         walletRepository.deleteAll();
     }
 
     @Test
     void createWallet_shouldCreateSuccessfully() {
-        WalletType type = walletTypeRepository.save(createWalletType());
-
         UUID userUid = UUID.randomUUID();
 
         var request = new CreateWalletRequest();
         request.setName("Test Wallet");
         request.setUserUid(userUid);
-        request.setWalletTypeUid(type.getUid());
+        request.setWalletTypeUid(UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e"));
 
         webTestClient.post()
                 .uri("/api/v1/wallets")
@@ -144,8 +111,7 @@ class WalletRestControllerV1Test {
 
     @Test
     void getWalletByUid_shouldReturnCorrectWallet() {
-        WalletType type = walletTypeRepository.save(createWalletType());
-        Wallet wallet = createWallet("Test", type, new BigDecimal("100.00"), UUID.randomUUID());
+        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "Test", new BigDecimal("100.00"));
 
         webTestClient.get()
                 .uri("/api/v1/wallets/" + wallet.getUid())
@@ -182,11 +148,10 @@ class WalletRestControllerV1Test {
 
     @Test
     void getWalletsByUser_shouldReturnUserWallets() {
-        WalletType type = walletTypeRepository.save(createWalletType());
         UUID userUid = UUID.randomUUID();
 
-        createWallet("W1", type, new BigDecimal("10.00"), userUid);
-        createWallet("W2", type, new BigDecimal("20.00"), userUid);
+        WalletUtils.createWallet(walletTypeRepository, walletRepository, "W1", new BigDecimal("10.00"), userUid);
+        WalletUtils.createWallet(walletTypeRepository, walletRepository, "W2", new BigDecimal("20.00"), userUid);
 
         webTestClient.get()
                 .uri("/api/v1/wallets/user/" + userUid)
@@ -198,27 +163,4 @@ class WalletRestControllerV1Test {
                     assertTrue(wallets.stream().allMatch(w -> Objects.equals(w.getUserUid(), userUid)));
                 });
     }
-
-    private Wallet createWallet(String name, WalletType type, BigDecimal balance, UUID userUid) {
-        Wallet wallet = new Wallet();
-        wallet.setName(name);
-        wallet.setWalletType(type);
-        wallet.setUserUid(userUid);
-        wallet.setStatus(WalletStatus.ACTIVE);
-        wallet.setBalance(balance);
-        walletRepository.save(wallet);
-        return wallet;
-    }
-
-    private WalletType createWalletType() {
-        WalletType type = new WalletType();
-        type.setCreator("system");
-        type.setName("default");
-        type.setUserType("default");
-        type.setStatus(WalletStatus.ACTIVE);
-        type.setCurrencyCode(Currency.getInstance("RUB"));
-        walletTypeRepository.save(type);
-        return type;
-    }
-
 }

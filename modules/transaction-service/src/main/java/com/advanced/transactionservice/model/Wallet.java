@@ -36,7 +36,7 @@ public class Wallet {
     @JoinColumn(name = "wallet_type_uid", nullable = false)
     private WalletType walletType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private UUID userUid;
 
     @Enumerated(EnumType.STRING)

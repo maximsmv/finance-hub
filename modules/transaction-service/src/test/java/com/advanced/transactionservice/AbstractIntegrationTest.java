@@ -1,8 +1,7 @@
 package com.advanced.transactionservice;
 
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -13,6 +12,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
@@ -24,6 +24,15 @@ public abstract class AbstractIntegrationTest {
         public FixedPortPostgreSQLContainer withFixedExposedPort(int hostPort, int containerPort) {
             super.addFixedExposedPort(hostPort, containerPort);
             return this;
+        }
+
+        @Override
+        public void start() {
+            super.start();
+            Flyway.configure()
+                    .dataSource(getJdbcUrl(), getUsername(), getPassword())
+                    .load()
+                    .migrate();
         }
     }
 
@@ -49,7 +58,6 @@ public abstract class AbstractIntegrationTest {
     public static KafkaContainer kafka = new KafkaContainer(
             DockerImageName.parse("confluentinc/cp-kafka:7.7.0")
     )
-            .withEmbeddedZookeeper()
             .withNetwork(network)
             .withNetworkAliases("kafka")
             .withReuse(true);
@@ -82,16 +90,5 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.shardingsphere.datasource.ds_1.url", POSTGRES_1::getJdbcUrl);
         registry.add("spring.shardingsphere.datasource.ds_1.username", POSTGRES_1::getUsername);
         registry.add("spring.shardingsphere.datasource.ds_1.password", POSTGRES_1::getPassword);
-    }
-
-    @BeforeAll
-    public static void runMigrate() {
-        Flyway.configure()
-                .dataSource(POSTGRES_0.getJdbcUrl(), POSTGRES_0.getUsername(), POSTGRES_0.getPassword())
-                .load().migrate();
-
-        Flyway.configure()
-                .dataSource(POSTGRES_1.getJdbcUrl(), POSTGRES_1.getUsername(), POSTGRES_1.getPassword())
-                .load().migrate();
     }
 }

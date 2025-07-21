@@ -115,7 +115,7 @@ public class TransactionServiceImpl implements TransactionService {
         walletService.debit(wallet.getWalletUid(), request.getAmount());
 
         Transaction transaction = TransactionMapper.fromWithdrawal(request, wallet);
-        transactionRepository.save(transaction);
+        transactionRepository.saveAndFlush(transaction);
 
         withdrawalRequestedProducer.send(KafkaPayloadMapper.toWithdrawalRequestedPayload(transaction, request.getDestination()));
 

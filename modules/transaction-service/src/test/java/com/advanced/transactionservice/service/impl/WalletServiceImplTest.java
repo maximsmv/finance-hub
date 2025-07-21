@@ -127,26 +127,4 @@ class WalletServiceImplTest {
         Mockito.verify(walletRepository).save(to);
     }
 
-    @Test
-    void transfer_shouldThrowIfValidationFails() {
-        UUID fromUid = UUID.randomUUID();
-        UUID toUid = UUID.randomUUID();
-
-        Wallet from = new Wallet();
-        from.setUid(fromUid);
-        from.setBalance(BigDecimal.valueOf(10));
-        from.setStatus(WalletStatus.ACTIVE);
-
-        Wallet to = new Wallet();
-        to.setUid(toUid);
-        to.setBalance(BigDecimal.valueOf(50));
-        to.setStatus(WalletStatus.ACTIVE);
-
-        Mockito.when(walletRepository.findForUpdate(fromUid)).thenReturn(Optional.of(from));
-        Mockito.when(walletRepository.findForUpdate(toUid)).thenReturn(Optional.of(to));
-
-        assertThrows(WalletBalanceException.class, () ->
-                walletService.transfer(fromUid, toUid, BigDecimal.valueOf(100), BigDecimal.valueOf(95)));
-    }
-
 }

@@ -29,3 +29,7 @@ kafka:
     deposit-completed: deposit-completed
     withdrawal-completed: withdrawal-completed
     withdrawal-failed: withdrawal-failed
+
+otel:
+  javaagent:
+    enabled: false

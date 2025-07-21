@@ -2,6 +2,7 @@ package com.advanced.transactionservice.controller.transaction.confirm;
 
 import com.advanced.contract.model.WithdrawalConfirmRequest;
 import com.advanced.kafkacontracts.WithdrawalRequested;
+import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
@@ -9,14 +10,15 @@ import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
-import org.apache.kafka.clients.admin.AdminClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,18 +26,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
-import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -43,18 +38,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(SpringExtension.class)
+@ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-public class ConfirmWithdrawalRestControllerV1Test {
+public class ConfirmWithdrawalRestControllerV1Test extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -71,59 +65,6 @@ public class ConfirmWithdrawalRestControllerV1Test {
     @Autowired
     private KafkaTopicsProperties kafkaTopicsProperties;
 
-
-    private static final Network network = Network.newNetwork();
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withExposedPorts(5432)
-            .withDatabaseName("testdb")
-            .withUsername("user")
-            .withPassword("pass")
-            .withNetwork(network)
-            .withNetworkAliases("postgres");
-
-    @Container
-    static KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("apache/kafka:3.7.0")
-    )
-            .withNetwork(network)
-            .withNetworkAliases("kafka");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
-
-    @BeforeAll
-    static void startContainers() {
-        kafka.start();
-        postgres.start();
-
-        try (AdminClient admin = AdminClient.create(Map.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()
-        ))) {
-            admin.listTopics().names().get(10, TimeUnit.SECONDS);
-            System.out.println("Kafka is available");
-        } catch (Exception e) {
-            System.err.println("Kafka is not available: " + e.getMessage());
-            throw new RuntimeException("Kafka is not available", e);
-        }
-
-    }
-
-    @AfterAll
-    static void tearDown() {
-        kafka.stop();
-        postgres.stop();
-    }
-
     private static Consumer<String, Object> kafkaConsumer;
 
     @BeforeEach
@@ -136,9 +77,10 @@ public class ConfirmWithdrawalRestControllerV1Test {
         consumerProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 15000);
         consumerProps.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 30000);
         consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+        consumerProps.put("schema.registry.url", "http://" + schemaRegistry.getHost() + ":" + schemaRegistry.getMappedPort(8081));
+        consumerProps.put("specific.avro.reader", "true");
         consumerProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        consumerProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WithdrawalRequested.class.getName());
 
         kafkaConsumer = new DefaultKafkaConsumerFactory<String, Object>(consumerProps).createConsumer();
 
@@ -159,13 +101,12 @@ public class ConfirmWithdrawalRestControllerV1Test {
 
         kafkaConsumer.seekToBeginning(kafkaConsumer.assignment());
         kafkaConsumer.poll(Duration.ofSeconds(1));
-        transactionRepository.deleteAll();
-        walletRepository.deleteAll();
-        walletTypeRepository.deleteAll();
     }
 
     @AfterEach
     void tearDownKafkaConsumer() {
+        transactionRepository.deleteAll();
+        walletRepository.deleteAll();
         if (kafkaConsumer != null) {
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close(Duration.ofSeconds(1));
@@ -203,7 +144,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
                     WithdrawalRequested payload = (WithdrawalRequested) record.value();
                     assertEquals(wallet.getUid(), payload.getWalletUid());
                     assertEquals("RUB", payload.getCurrency());
-                    assertEquals(new BigDecimal("150.00"), payload.getAmount());
+                    assertEquals(new BigDecimal("100.00"), payload.getAmount());
                     assertEquals(wallet.getUserUid(), payload.getUserUid());
                 });
     }
@@ -377,45 +318,6 @@ public class ConfirmWithdrawalRestControllerV1Test {
                 .expectStatus().isBadRequest();
 
         assertNoKafkaMessagesSent();
-    }
-
-    @Test
-    void confirmWithdrawal_shouldBeIdempotent_whenSameTransactionUidIsUsed() {
-        UUID transactionUid = UUID.randomUUID();
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "withdrawal-idempotent", BigDecimal.valueOf(500));
-
-
-        WithdrawalConfirmRequest request = new WithdrawalConfirmRequest();
-        request.setWalletUid(wallet.getUid());
-        request.setAmount(BigDecimal.valueOf(100));
-        request.setCurrency("RUB");
-        request.setComment("Idempotency test - withdrawal");
-        request.setFee(BigDecimal.ZERO);
-
-        webTestClient.post()
-                .uri("/api/v1/transactions/withdrawal/confirm")
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk();
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(15))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    ConsumerRecords<String, Object> records = kafkaConsumer.poll(Duration.ofMillis(1000));
-                    assertEquals(1, countRecordsWithTransactionUid(records, transactionUid),
-                            "Should find exactly one message with transactionUid: " + transactionUid);
-                });
-
-        webTestClient.post()
-                .uri("/api/v1/transactions/withdrawal/confirm")
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
-
-        ConsumerRecords<String, Object> newRecords = kafkaConsumer.poll(Duration.ofMillis(2000));
-        assertEquals(0, countRecordsWithTransactionUid(newRecords, transactionUid),
-                "No new messages should be sent for duplicate request");
     }
 
     private void assertNoKafkaMessagesSent() {

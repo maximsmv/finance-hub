@@ -1,6 +1,7 @@
 package com.advanced.transactionservice.controller.transaction.init;
 
 import com.advanced.contract.model.WithdrawalInitRequest;
+import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -31,13 +33,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(SpringExtension.class)
+@ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-public class InitWithdrawalRestControllerV1Test {
+public class InitWithdrawalRestControllerV1Test extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -50,37 +52,6 @@ public class InitWithdrawalRestControllerV1Test {
 
     @Autowired
     private TransactionRepository requestRepository;
-
-    private static final Network network = Network.newNetwork();
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withExposedPorts(5432)
-            .withDatabaseName("testdb")
-            .withUsername("user")
-            .withPassword("pass")
-            .withNetwork(network)
-            .withNetworkAliases("postgres");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
-
-    @BeforeAll
-    static void startContainers() {
-        postgres.start();
-    }
-
-    @AfterAll
-    static void tearDown() {
-        postgres.stop();
-    }
 
     @BeforeEach
     void setup() {

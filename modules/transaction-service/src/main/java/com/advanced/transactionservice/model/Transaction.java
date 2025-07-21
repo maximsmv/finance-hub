@@ -26,7 +26,7 @@ public class Transaction {
     @Column(name = "wallet_uid", nullable = false)
     private UUID walletUid;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private UUID userUid;
 
     @Column(nullable = false)

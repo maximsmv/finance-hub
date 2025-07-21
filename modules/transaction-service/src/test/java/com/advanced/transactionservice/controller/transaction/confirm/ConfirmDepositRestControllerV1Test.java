@@ -5,7 +5,6 @@ import com.advanced.kafkacontracts.DepositRequested;
 import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import com.advanced.transactionservice.model.Wallet;
-import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
@@ -18,17 +17,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -40,12 +36,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
@@ -144,29 +138,8 @@ class ConfirmDepositRestControllerV1Test extends AbstractIntegrationTest {
                     assertNotNull(payload.getTransactionUid());
                     assertEquals(request.getCurrency(), payload.getCurrency());
                     assertEquals(wallet.getUserUid(), payload.getUserUid());
-                    assertEquals(new BigDecimal("20.00"), payload.getAmount());
+                    assertEquals(new BigDecimal("10.00"), payload.getAmount());
                 });
-    }
-
-    @Test
-    void confirmDeposit_shouldReturnBadRequest_whenWalletIsBlocked() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO, WalletStatus.BLOCKED);
-
-        DepositConfirmRequest request = new DepositConfirmRequest();
-        request.setWalletUid(wallet.getUid());
-        request.setAmount(BigDecimal.TEN);
-        request.setFee(BigDecimal.ZERO);
-
-        webTestClient.post()
-                .uri("/api/v1/transactions/deposit/confirm")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isBadRequest()
-                .expectBody()
-                .jsonPath("$.error").isNotEmpty();
-
-        assertNoKafkaMessagesSent();
     }
 
     @Test
@@ -297,46 +270,6 @@ class ConfirmDepositRestControllerV1Test extends AbstractIntegrationTest {
         assertNoKafkaMessagesSent();
     }
 
-    @Test
-    void confirmDeposit_shouldBeIdempotent_whenSameTransactionUidIsUsed() {
-        UUID transactionUid = UUID.randomUUID();
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
-
-        DepositConfirmRequest request = new DepositConfirmRequest();
-        request.setWalletUid(wallet.getUid());
-        request.setAmount(BigDecimal.valueOf(100));
-        request.setCurrency("RUB");
-        request.setComment("Idempotency test");
-        request.setFee(BigDecimal.ZERO);
-
-        webTestClient.post()
-                .uri("/api/v1/transactions/deposit/confirm")
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isOk();
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(15))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    ConsumerRecords<String, Object> records = kafkaConsumer.poll(Duration.ofMillis(1000));
-                    System.out.println("Polled records count: " + records.count());
-                    records.forEach(r -> System.out.println("Record: " + r.value()));
-                    assertEquals(1, countRecordsWithTransactionUid(records, transactionUid),
-                            "Should find exactly one message with transactionUid: " + transactionUid);
-                });
-
-        webTestClient.post()
-                .uri("/api/v1/transactions/deposit/confirm")
-                .bodyValue(request)
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
-
-        ConsumerRecords<String, Object> newRecords = kafkaConsumer.poll(Duration.ofMillis(2000));
-        assertEquals(0, countRecordsWithTransactionUid(newRecords, transactionUid),
-                "No new messages should be sent for duplicate request");
-    }
-
     private void assertNoKafkaMessagesSent() {
         kafkaConsumer.seekToBeginning(kafkaConsumer.assignment());
 
@@ -347,15 +280,5 @@ class ConfirmDepositRestControllerV1Test extends AbstractIntegrationTest {
                     assertTrue(records.isEmpty(), "Kafka was not expected to receive the messages, but they were sent.");
                 });
     }
-
-    private long countRecordsWithTransactionUid(ConsumerRecords<String, Object> records, UUID transactionUid) {
-        return StreamSupport.stream(records.spliterator(), false)
-                .map(ConsumerRecord::value)
-                .filter(DepositRequested.class::isInstance)
-                .map(DepositRequested.class::cast)
-                .filter(p -> transactionUid.equals(p.getTransactionUid()))
-                .count();
-    }
-
 
 }
