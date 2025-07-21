@@ -1,44 +1,32 @@
 package com.advanced.transactionservice.mapper;
 
-import com.advanced.kafka.contracts.model.DepositRequestedPayload;
-import com.advanced.kafka.contracts.model.WithdrawalRequestedPayload;
-import com.advanced.transactionservice.model.PaymentRequest;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
+import com.advanced.kafkacontracts.DepositRequested;
+import com.advanced.kafkacontracts.WithdrawalRequested;
+import com.advanced.transactionservice.model.Transaction;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.Currency;
+public class KafkaPayloadMapper {
 
-@Mapper(componentModel = "spring", imports = OffsetDateTime.class)
-public interface KafkaPayloadMapper {
+    public static DepositRequested toDepositRequestedPayload(Transaction payment) {
+        return new DepositRequested(
+                payment.getUid(),
+                payment.getUserUid(),
+                payment.getWalletUid(),
+                payment.getAmount(),
+                payment.getCurrency().toString(),
+                payment.getCreatedAt().toInstant()
+        );
+    };
 
-    @Mapping(target = "transactionId", expression = "java(payment.getTransactionUid().toString())")
-    @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
-    @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
-    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
-    @Mapping(target = "amount", source = "totalAmount", qualifiedByName = "bigDecimalToString")
-    @Mapping(target = "timestamp", expression = "java(OffsetDateTime.now())")
-    DepositRequestedPayload toDepositRequestedPayload(PaymentRequest payment);
-
-    @Mapping(target = "transactionId", expression = "java(payment.getTransactionUid().toString())")
-    @Mapping(target = "walletId", expression = "java(payment.getWalletUid().toString())")
-    @Mapping(target = "userId", expression = "java(payment.getUserUid().toString())")
-    @Mapping(target = "currency", source = "currency", qualifiedByName = "currencyToString")
-    @Mapping(target = "amount", source = "totalAmount", qualifiedByName = "bigDecimalToString")
-    @Mapping(target = "destination", source = "comment")
-    @Mapping(target = "timestamp", expression = "java(OffsetDateTime.now())")
-    WithdrawalRequestedPayload toWithdrawalRequestedPayload(PaymentRequest payment);
-
-    @Named("currencyToString")
-    static String currencyToString(Currency currency) {
-        return currency.getCurrencyCode();
-    }
-
-    @Named("bigDecimalToString")
-    static String bigDecimalToString(BigDecimal amount) {
-        return amount.toPlainString();
-    }
+    public static WithdrawalRequested toWithdrawalRequestedPayload(Transaction payment, String destination) {
+        return new WithdrawalRequested(
+                payment.getUid(),
+                payment.getUserUid(),
+                payment.getWalletUid(),
+                payment.getAmount(),
+                payment.getCurrency().toString(),
+                destination,
+                payment.getCreatedAt().toInstant()
+        );
+    };
 
 }

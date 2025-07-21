@@ -1,7 +1,7 @@
 package com.advanced.transactionservice.service.producer;
 
-import com.advanced.kafka.contracts.model.DepositRequestedPayload;
-import com.advanced.kafka.contracts.model.WithdrawalRequestedPayload;
+import com.advanced.kafkacontracts.WithdrawalRequested;
+import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -10,10 +10,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class WithdrawalRequestedProducer {
 
-    private final KafkaTemplate<String, WithdrawalRequestedPayload> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void send(final WithdrawalRequestedPayload payload) {
-        kafkaTemplate.send("withdrawal-requested", payload.getTransactionId(), payload);
+    private final KafkaTopicsProperties topics;
+
+    public void send(final WithdrawalRequested payload) {
+        kafkaTemplate.send(topics.getWithdrawalRequested(), payload.getTransactionUid().toString(), payload);
     }
 
 }

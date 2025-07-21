@@ -1,0 +1,37 @@
+datasource:
+  ds0:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    jdbc-url: jdbc:postgresql://transaction-service-postgres-0:5432/transaction_db_0
+    username: transaction-service
+    password: password
+  ds1:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    jdbc-url: jdbc:postgresql://transaction-service-postgres-1:5432/transaction_db_1
+    username: transaction-service
+    password: password
+rules:
+  sharding:
+    tables:
+      transactions:
+        actual-data-nodes: ds$->{0..1}.transactions
+        table-strategy:
+          standard:
+            sharding-column: user_uid
+            sharding-algorithm-name: hash_mod
+      wallets:
+        actual-data-nodes: ds$->{0..1}.wallets
+        table-strategy:
+          standard:
+            sharding-column: user_uid
+            sharding-algorithm-name: hash_mod
+      wallet_types:
+        actual-data-nodes: ds0.wallet_types
+    shardingAlgorithms:
+      hash_mod:
+        type: HASH_MOD
+        props:
+          sharding-count: 2
+props:
+  sql-show: true

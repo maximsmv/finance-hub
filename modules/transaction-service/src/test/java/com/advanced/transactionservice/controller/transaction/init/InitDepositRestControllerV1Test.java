@@ -1,9 +1,9 @@
 package com.advanced.transactionservice.controller.transaction.init;
 
 import com.advanced.contract.model.DepositInitRequest;
-import com.advanced.transactionservice.model.PaymentRequest;
+import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.model.Wallet;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
@@ -49,7 +49,7 @@ public class InitDepositRestControllerV1Test {
     private WalletRepository walletRepository;
 
     @Autowired
-    private PaymentRequestRepository requestRepository;
+    private TransactionRepository requestRepository;
 
     private static final Network network = Network.newNetwork();
 
@@ -104,7 +104,7 @@ public class InitDepositRestControllerV1Test {
                 .expectBody()
                 .jsonPath("$.transactionUid").isNotEmpty();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -122,7 +122,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -141,7 +141,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -159,7 +159,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -177,7 +177,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -194,7 +194,7 @@ public class InitDepositRestControllerV1Test {
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 

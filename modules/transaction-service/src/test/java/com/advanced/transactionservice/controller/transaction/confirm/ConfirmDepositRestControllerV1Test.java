@@ -1,43 +1,38 @@
 package com.advanced.transactionservice.controller.transaction.confirm;
 
 import com.advanced.contract.model.DepositConfirmRequest;
-import com.advanced.kafka.contracts.model.DepositRequestedPayload;
+import com.advanced.kafkacontracts.DepositRequested;
+import com.advanced.transactionservice.AbstractIntegrationTest;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
-import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.utils.WalletUtils;
-import org.apache.kafka.clients.admin.AdminClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
-import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -45,19 +40,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
+@ActiveProfiles("test")
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureWebTestClient
 @Testcontainers
-class ConfirmDepositRestControllerV1Test {
+class ConfirmDepositRestControllerV1Test extends AbstractIntegrationTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -71,61 +65,6 @@ class ConfirmDepositRestControllerV1Test {
     @Autowired
     private KafkaTopicsProperties kafkaTopicsProperties;
 
-    @MockBean
-    private CalculationFeeService calculationFeeService;
-
-    private static final Network network = Network.newNetwork();
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withExposedPorts(5432)
-            .withDatabaseName("testdb")
-            .withUsername("user")
-            .withPassword("pass")
-            .withNetwork(network)
-            .withNetworkAliases("postgres");
-
-    @Container
-    static KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("apache/kafka:3.7.0")
-    )
-            .withNetwork(network)
-            .withNetworkAliases("kafka");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
-
-    @BeforeAll
-    static void startContainers() {
-        kafka.start();
-        postgres.start();
-
-        try (AdminClient admin = AdminClient.create(Map.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()
-        ))) {
-            admin.listTopics().names().get(10, TimeUnit.SECONDS);
-            System.out.println("Kafka is available");
-        } catch (Exception e) {
-            System.err.println("Kafka is not available: " + e.getMessage());
-            throw new RuntimeException("Kafka is not available", e);
-        }
-
-    }
-
-    @AfterAll
-    static void tearDown() {
-        kafka.stop();
-        postgres.stop();
-    }
-
     private static Consumer<String, Object> kafkaConsumer;
 
     @BeforeEach
@@ -138,9 +77,10 @@ class ConfirmDepositRestControllerV1Test {
         consumerProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 15000);
         consumerProps.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 30000);
         consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+        consumerProps.put("schema.registry.url", "http://" + schemaRegistry.getHost() + ":" + schemaRegistry.getMappedPort(8081));
+        consumerProps.put("specific.avro.reader", "true");
         consumerProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        consumerProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, DepositRequestedPayload.class.getName());
 
         kafkaConsumer = new DefaultKafkaConsumerFactory<String, Object>(consumerProps).createConsumer();
 
@@ -181,9 +121,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setCurrency("RUB");
         request.setComment("test_comment");
         request.setAmount(new BigDecimal("10.00"));
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationDepositFee("RUB")).thenReturn(new BigDecimal("10.00"));
+        request.setFee(new BigDecimal("10.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -199,14 +137,14 @@ class ConfirmDepositRestControllerV1Test {
                             kafkaTopicsProperties.getDepositRequested()
                     );
                     assertNotNull(record);
-                    assertInstanceOf(DepositRequestedPayload.class, record.value());
+                    assertInstanceOf(DepositRequested.class, record.value());
 
-                    DepositRequestedPayload payload = (DepositRequestedPayload) record.value();
-                    assertEquals(wallet.getUid().toString(), payload.getWalletId());
-                    assertNotNull(payload.getTransactionId());
+                    DepositRequested payload = (DepositRequested) record.value();
+                    assertEquals(wallet.getUid(), payload.getWalletUid());
+                    assertNotNull(payload.getTransactionUid());
                     assertEquals(request.getCurrency(), payload.getCurrency());
-                    assertEquals(wallet.getUserUid().toString(), payload.getUserId());
-                    assertEquals(new BigDecimal("20.00"), new BigDecimal(payload.getAmount()));
+                    assertEquals(wallet.getUserUid(), payload.getUserUid());
+                    assertEquals(new BigDecimal("20.00"), payload.getAmount());
                 });
     }
 
@@ -217,11 +155,7 @@ class ConfirmDepositRestControllerV1Test {
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(wallet.getUid());
         request.setAmount(BigDecimal.TEN);
-        request.setCurrency("RUB");
-        request.setComment("test");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationDepositFee("RUB")).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -240,7 +174,7 @@ class ConfirmDepositRestControllerV1Test {
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -256,7 +190,7 @@ class ConfirmDepositRestControllerV1Test {
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setWalletUid(UUID.randomUUID());
         request.setAmount(BigDecimal.TEN);
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -272,7 +206,7 @@ class ConfirmDepositRestControllerV1Test {
         DepositConfirmRequest request = new DepositConfirmRequest();
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.TEN);
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -289,7 +223,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.ZERO);
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -306,7 +240,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RUB");
         request.setAmount(new BigDecimal("-10.00"));
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -323,7 +257,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RU1"); // или "123"
         request.setAmount(BigDecimal.TEN);
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -352,7 +286,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.TEN);
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -373,9 +307,7 @@ class ConfirmDepositRestControllerV1Test {
         request.setAmount(BigDecimal.valueOf(100));
         request.setCurrency("RUB");
         request.setComment("Idempotency test");
-        request.setTransactionUid(transactionUid);
-
-        when(calculationFeeService.calculationDepositFee("RUB")).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/deposit/confirm")
@@ -419,9 +351,9 @@ class ConfirmDepositRestControllerV1Test {
     private long countRecordsWithTransactionUid(ConsumerRecords<String, Object> records, UUID transactionUid) {
         return StreamSupport.stream(records.spliterator(), false)
                 .map(ConsumerRecord::value)
-                .filter(DepositRequestedPayload.class::isInstance)
-                .map(DepositRequestedPayload.class::cast)
-                .filter(p -> transactionUid.toString().equals(p.getTransactionId()))
+                .filter(DepositRequested.class::isInstance)
+                .map(DepositRequested.class::cast)
+                .filter(p -> transactionUid.equals(p.getTransactionUid()))
                 .count();
     }
 

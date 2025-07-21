@@ -1,13 +1,10 @@
 package com.advanced.transactionservice.service.impl;
 
 import com.advanced.contract.model.*;
-import com.advanced.transactionservice.exception.TransactionConflictException;
 import com.advanced.transactionservice.mapper.KafkaPayloadMapper;
-import com.advanced.transactionservice.mapper.PaymentRequestMapper;
-import com.advanced.transactionservice.model.PaymentRequest;
-import com.advanced.transactionservice.model.TransferOperation;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
-import com.advanced.transactionservice.repository.TransferOperationRepository;
+import com.advanced.transactionservice.mapper.TransactionMapper;
+import com.advanced.transactionservice.model.Transaction;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.service.TransactionService;
 import com.advanced.transactionservice.service.WalletService;
@@ -16,8 +13,6 @@ import com.advanced.transactionservice.service.producer.WithdrawalRequestedProdu
 import com.advanced.transactionservice.service.validation.TransactionValidation;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.postgresql.util.PSQLException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static com.advanced.contract.model.TransactionConfirmResponse.StatusEnum.CONFIRMED;
-import static com.advanced.transactionservice.model.PaymentStatus.COMPLETED;
-import static com.advanced.transactionservice.model.PaymentStatus.PENDING;
-import static com.advanced.transactionservice.model.PaymentType.*;
+import static com.advanced.contract.model.TransactionConfirmResponse.StatusEnum.PENDING;
 
 @Service
 @RequiredArgsConstructor
@@ -42,13 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final CalculationFeeService calculationFeeService;
 
-    private final KafkaPayloadMapper kafkaPayloadMapper;
-
-    private final PaymentRequestMapper paymentRequestMapper;
-
-    private final PaymentRequestRepository paymentRequestRepository;
-
-    private final TransferOperationRepository transferOperationRepository;
+    private final TransactionRepository transactionRepository;
 
     private final DepositRequestedProducer depositRequestedProducer;
 
@@ -111,33 +97,12 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionConfirmResponse confirmDeposit(DepositConfirmRequest request) {
         WalletResponse wallet = walletService.getWalletByUid(request.getWalletUid());
 
-        BigDecimal fee = calculationFeeService.calculationDepositFee(request.getCurrency());
+        Transaction transaction = TransactionMapper.fromDeposit(request, wallet);
 
-        transactionValidation.validateDeposit(wallet);
+        transactionRepository.saveAndFlush(transaction);
+        depositRequestedProducer.send(KafkaPayloadMapper.toDepositRequestedPayload(transaction));
 
-        PaymentRequest payment = paymentRequestMapper.fromDeposit(
-                request,
-                wallet.getWalletUid(),
-                wallet.getUserUid(),
-                request.getAmount(),
-                fee,
-                PENDING,
-                DEPOSIT
-        );
-
-        try {
-            paymentRequestRepository.save(payment);
-            paymentRequestRepository.flush();
-        } catch (DataIntegrityViolationException ex) {
-            if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
-                throw new TransactionConflictException();
-            }
-            throw ex;
-        }
-
-        depositRequestedProducer.send(kafkaPayloadMapper.toDepositRequestedPayload(payment));
-
-        return getConfirmResponse(payment.getTransactionUid());
+        return getConfirmResponse(transaction.getUid());
     }
 
     @Override
@@ -145,33 +110,16 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionConfirmResponse confirmWithdrawal(WithdrawalConfirmRequest request) {
         WalletResponse wallet = walletService.getWalletByUid(request.getWalletUid());
 
-        BigDecimal fee = calculationFeeService.calculationWithdrawalFee();
-        BigDecimal totalAmount = request.getAmount().add(fee).setScale(2, RoundingMode.HALF_EVEN);
+        transactionValidation.validateWithdrawal(wallet, request.getAmount());
 
-        transactionValidation.validateWithdrawal(wallet, totalAmount);
+        walletService.debit(wallet.getWalletUid(), request.getAmount());
 
-        PaymentRequest payment = paymentRequestMapper.fromWithdrawal(
-                request,
-                wallet.getWalletUid(),
-                wallet.getUserUid(),
-                request.getAmount(),
-                fee,
-                PENDING,
-                WITHDRAWAL
-        );
+        Transaction transaction = TransactionMapper.fromWithdrawal(request, wallet);
+        transactionRepository.save(transaction);
 
-        try {
-            paymentRequestRepository.saveAndFlush(payment);
-        } catch (DataIntegrityViolationException ex) {
-            if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
-                throw new TransactionConflictException();
-            }
-            throw ex;
-        }
+        withdrawalRequestedProducer.send(KafkaPayloadMapper.toWithdrawalRequestedPayload(transaction, request.getDestination()));
 
-        withdrawalRequestedProducer.send(kafkaPayloadMapper.toWithdrawalRequestedPayload(payment));
-
-        return getConfirmResponse(payment.getTransactionUid());
+        return getConfirmResponse(transaction.getUid());
     }
 
     @Override
@@ -180,54 +128,16 @@ public class TransactionServiceImpl implements TransactionService {
         WalletResponse fromWallet = walletService.getWalletByUid(request.getWalletUid());
         WalletResponse toWallet = walletService.getWalletByUid(request.getTargetWalletUid());
 
-        BigDecimal fee = calculationFeeService.calculationTransferFee();
-        BigDecimal totalAmount = request.getAmount().add(fee).setScale(2, RoundingMode.HALF_EVEN);
+        walletService.transfer(fromWallet.getWalletUid(), toWallet.getWalletUid(), request.getAmount().add(request.getFee()), request.getAmount());
 
-        walletService.transfer(fromWallet.getWalletUid(), toWallet.getWalletUid(), totalAmount, request.getAmount());
-
-        return createNewTransferOperation(request, fromWallet, toWallet, fee);
-    }
-
-    private TransactionConfirmResponse createNewTransferOperation(TransferConfirmRequest request, WalletResponse fromWallet, WalletResponse toWallet, BigDecimal fee) {
-        TransferOperation operation = new TransferOperation();
-        operation.setTransactionUid(request.getTransactionUid());
-
-        PaymentRequest debitRequest = paymentRequestMapper.fromTransfer(
+        Transaction transaction = TransactionMapper.fromTransfer(
                 request,
-                fromWallet.getWalletUid(),
-                toWallet.getWalletUid(),
-                fromWallet.getUserUid(),
-                request.getAmount(),
-                fee,
-                COMPLETED,
-                TRANSFER
+                fromWallet,
+                toWallet.getWalletUid()
         );
-        paymentRequestRepository.save(debitRequest);
+        transactionRepository.save(transaction);
 
-        PaymentRequest creditRequest = paymentRequestMapper.fromTransfer(
-                request,
-                toWallet.getWalletUid(),
-                fromWallet.getWalletUid(),
-                toWallet.getUserUid(),
-                request.getAmount(),
-                BigDecimal.ZERO,
-                COMPLETED,
-                TRANSFER
-        );
-        paymentRequestRepository.save(creditRequest);
-
-        operation.setPaymentRequests(List.of(debitRequest, creditRequest));
-
-        try {
-            transferOperationRepository.saveAndFlush(operation);
-        } catch (DataIntegrityViolationException ex) {
-            if (ex.getRootCause() instanceof PSQLException psqlEx && "23505".equals(psqlEx.getSQLState())) {
-                throw new TransactionConflictException();
-            }
-            throw ex;
-        }
-
-        return getConfirmResponse(operation.getTransactionUid());
+        return getConfirmResponse(transaction.getUid(), TransactionConfirmResponse.StatusEnum.COMPLETED);
     }
 
     @Override
@@ -235,10 +145,10 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionStatusResponse getTransactionStatus(String transactionId) {
         UUID transactionUid = UUID.fromString(transactionId);
 
-        PaymentRequest payment = paymentRequestRepository.findByTransactionUid(transactionUid)
+        Transaction payment = transactionRepository.findById(transactionUid)
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
 
-        return paymentRequestMapper.toTransactionStatusResponse(payment);
+        return TransactionMapper.toTransactionStatusResponse(payment);
     }
 
     @Override
@@ -257,7 +167,6 @@ public class TransactionServiceImpl implements TransactionService {
 
     private TransactionInitResponse getTransactionInitResponse(BigDecimal fee, BigDecimal amount, BigDecimal totalAmount) {
         TransactionInitResponse response = new TransactionInitResponse();
-        response.setTransactionUid(UUID.randomUUID());
         response.setFee(fee);
         response.setAmount(amount);
         response.setTotalAmount(totalAmount);
@@ -267,7 +176,14 @@ public class TransactionServiceImpl implements TransactionService {
     private static TransactionConfirmResponse getConfirmResponse(UUID transactionUid) {
         TransactionConfirmResponse response = new TransactionConfirmResponse();
         response.setTransactionUid(transactionUid);
-        response.setStatus(CONFIRMED);
+        response.setStatus(PENDING);
+        return response;
+    }
+
+    private static TransactionConfirmResponse getConfirmResponse(UUID transactionUid, TransactionConfirmResponse.StatusEnum statusEnum) {
+        TransactionConfirmResponse response = new TransactionConfirmResponse();
+        response.setTransactionUid(transactionUid);
+        response.setStatus(statusEnum);
         return response;
     }
 

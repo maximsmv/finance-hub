@@ -1,10 +1,9 @@
 package com.advanced.transactionservice.controller.transaction.init;
 
-import com.advanced.contract.model.TransferConfirmRequest;
 import com.advanced.contract.model.TransferInitRequest;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
@@ -46,7 +45,7 @@ public class InitTransferRestControllerV1Test {
     private WalletRepository walletRepository;
 
     @Autowired
-    private PaymentRequestRepository requestRepository;
+    private TransactionRepository transactionRepository;
 
     private static final Network network = Network.newNetwork();
 

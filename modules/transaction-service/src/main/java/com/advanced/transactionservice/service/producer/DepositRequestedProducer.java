@@ -1,6 +1,6 @@
 package com.advanced.transactionservice.service.producer;
 
-import com.advanced.kafka.contracts.model.DepositRequestedPayload;
+import com.advanced.kafkacontracts.DepositRequested;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,12 +10,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DepositRequestedProducer {
 
-    private final KafkaTemplate<String, DepositRequestedPayload> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     private final KafkaTopicsProperties topics;
 
-    public void send(final DepositRequestedPayload payload) {
-        kafkaTemplate.send(topics.getDepositRequested(), payload.getTransactionId(), payload);
+    public void send(final DepositRequested payload) {
+        kafkaTemplate.send(topics.getDepositRequested(), payload.getTransactionUid().toString(), payload);
     }
 
 }

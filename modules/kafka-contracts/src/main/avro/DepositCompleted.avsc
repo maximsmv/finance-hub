@@ -1,0 +1,34 @@
+{
+  "type": "record",
+  "name": "DepositCompleted",
+  "namespace": "com.advanced.kafkacontracts",
+  "fields": [
+    {
+      "name": "transactionUid",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "status",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 20,
+        "scale": 2
+      }
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}

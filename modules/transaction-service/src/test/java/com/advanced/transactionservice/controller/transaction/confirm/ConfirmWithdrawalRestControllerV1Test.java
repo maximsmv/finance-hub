@@ -1,14 +1,13 @@
 package com.advanced.transactionservice.controller.transaction.confirm;
 
 import com.advanced.contract.model.WithdrawalConfirmRequest;
-import com.advanced.kafka.contracts.model.WithdrawalRequestedPayload;
+import com.advanced.kafkacontracts.WithdrawalRequested;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
-import com.advanced.transactionservice.model.WalletType;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
-import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.utils.WalletUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -30,23 +28,25 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
@@ -63,13 +63,14 @@ public class ConfirmWithdrawalRestControllerV1Test {
     private WalletRepository walletRepository;
 
     @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
     private WalletTypeRepository walletTypeRepository;
 
     @Autowired
     private KafkaTopicsProperties kafkaTopicsProperties;
 
-    @MockBean
-    private CalculationFeeService calculationFeeService;
 
     private static final Network network = Network.newNetwork();
 
@@ -137,7 +138,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         consumerProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        consumerProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WithdrawalRequestedPayload.class.getName());
+        consumerProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WithdrawalRequested.class.getName());
 
         kafkaConsumer = new DefaultKafkaConsumerFactory<String, Object>(consumerProps).createConsumer();
 
@@ -158,6 +159,9 @@ public class ConfirmWithdrawalRestControllerV1Test {
 
         kafkaConsumer.seekToBeginning(kafkaConsumer.assignment());
         kafkaConsumer.poll(Duration.ofSeconds(1));
+        transactionRepository.deleteAll();
+        walletRepository.deleteAll();
+        walletTypeRepository.deleteAll();
     }
 
     @AfterEach
@@ -178,9 +182,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setComment("withdraw test");
         request.setAmount(new BigDecimal("100.00"));
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(new BigDecimal("50.00"));
+        request.setFee(new BigDecimal("50.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -196,13 +198,13 @@ public class ConfirmWithdrawalRestControllerV1Test {
                             kafkaTopicsProperties.getWithdrawalRequested()
                     );
                     assertNotNull(record);
-                    assertInstanceOf(WithdrawalRequestedPayload.class, record.value());
+                    assertInstanceOf(WithdrawalRequested.class, record.value());
 
-                    WithdrawalRequestedPayload payload = (WithdrawalRequestedPayload) record.value();
-                    assertEquals(wallet.getUid().toString(), payload.getWalletId());
+                    WithdrawalRequested payload = (WithdrawalRequested) record.value();
+                    assertEquals(wallet.getUid(), payload.getWalletUid());
                     assertEquals("RUB", payload.getCurrency());
-                    assertEquals("150.00", payload.getAmount());
-                    assertEquals(wallet.getUserUid().toString(), payload.getUserId());
+                    assertEquals(new BigDecimal("150.00"), payload.getAmount());
+                    assertEquals(wallet.getUserUid(), payload.getUserUid());
                 });
     }
 
@@ -217,9 +219,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setAmount(amount);
         request.setComment("edge case match");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(fee);
+        request.setFee(fee);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -231,7 +231,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
                 .atMost(Duration.ofSeconds(10))
                 .untilAsserted(() -> {
                     ConsumerRecords<String, Object> records = kafkaConsumer.poll(Duration.ofMillis(500));
-                    assertEquals(1, countRecordsWithTransactionUid(records, request.getTransactionUid()));
+                    assertEquals(1, countRecordsWithTransactionUid(records, transactionRepository.findAll().getFirst().getUid()));
                 });
     }
 
@@ -244,9 +244,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.valueOf(100));
         request.setComment("blocked wallet");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -266,9 +264,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.valueOf(100));
         request.setComment("archived wallet");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -288,7 +284,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.valueOf(-50));
         request.setComment("negative");
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -308,9 +304,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setAmount(BigDecimal.valueOf(100));
         request.setCurrency("RUB");
         request.setComment("too much");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(new BigDecimal("0"));
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -326,7 +320,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         WithdrawalConfirmRequest request = new WithdrawalConfirmRequest();
         request.setWalletUid(UUID.randomUUID());
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -355,9 +349,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setCurrency("RUB");
         request.setAmount(BigDecimal.valueOf(100));
         request.setComment("not found");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -398,9 +390,7 @@ public class ConfirmWithdrawalRestControllerV1Test {
         request.setAmount(BigDecimal.valueOf(100));
         request.setCurrency("RUB");
         request.setComment("Idempotency test - withdrawal");
-        request.setTransactionUid(transactionUid);
-
-        when(calculationFeeService.calculationWithdrawalFee()).thenReturn(BigDecimal.ZERO);
+        request.setFee(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/withdrawal/confirm")
@@ -442,9 +432,9 @@ public class ConfirmWithdrawalRestControllerV1Test {
     private long countRecordsWithTransactionUid(ConsumerRecords<String, Object> records, UUID transactionUid) {
         return StreamSupport.stream(records.spliterator(), false)
                 .map(ConsumerRecord::value)
-                .filter(WithdrawalRequestedPayload.class::isInstance)
-                .map(WithdrawalRequestedPayload.class::cast)
-                .filter(p -> transactionUid.toString().equals(p.getTransactionId()))
+                .filter(WithdrawalRequested.class::isInstance)
+                .map(WithdrawalRequested.class::cast)
+                .filter(p -> transactionUid.equals(p.getTransactionUid()))
                 .count();
     }
 

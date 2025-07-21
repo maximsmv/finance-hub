@@ -1,10 +1,10 @@
 package com.advanced.transactionservice.controller.transaction.init;
 
 import com.advanced.contract.model.WithdrawalInitRequest;
-import com.advanced.transactionservice.model.PaymentRequest;
+import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
 import com.advanced.transactionservice.utils.WalletUtils;
@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -50,7 +49,7 @@ public class InitWithdrawalRestControllerV1Test {
     private WalletRepository walletRepository;
 
     @Autowired
-    private PaymentRequestRepository requestRepository;
+    private TransactionRepository requestRepository;
 
     private static final Network network = Network.newNetwork();
 
@@ -103,7 +102,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isOk();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -122,7 +121,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -141,7 +140,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -160,7 +159,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -178,7 +177,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -197,7 +196,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -213,7 +212,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -231,7 +230,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isBadRequest();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 
@@ -248,7 +247,7 @@ public class InitWithdrawalRestControllerV1Test {
                 .exchange()
                 .expectStatus().isNotFound();
 
-        List<PaymentRequest> requests = requestRepository.findAll();
+        List<Transaction> requests = requestRepository.findAll();
         assertTrue(requests.isEmpty());
     }
 

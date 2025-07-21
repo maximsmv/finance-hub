@@ -9,7 +9,6 @@ import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.service.WalletService;
 import com.advanced.transactionservice.service.WalletTypeService;
-import com.advanced.transactionservice.service.validation.WalletValidation;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -73,30 +72,24 @@ public class WalletServiceImpl implements WalletService {
         Wallet to = walletRepository.findForUpdate(toWalletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
 
-        WalletValidation.validateTransfer(from, to, debitAmount);
-
         debit(from, debitAmount);
         credit(to, creditAmount);
     }
 
     @Override
     @Transactional
-    public synchronized void deposit(UUID walletUid, BigDecimal creditAmount) {
+    public synchronized void credit(UUID walletUid, BigDecimal creditAmount) {
         Wallet wallet = walletRepository.findForUpdate(walletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
-
-        WalletValidation.validateDeposit(wallet);
 
         credit(wallet, creditAmount);
     }
 
     @Override
     @Transactional
-    public synchronized void withdraw(UUID walletUid, BigDecimal debitAmount) {
+    public synchronized void debit(UUID walletUid, BigDecimal debitAmount) {
         Wallet wallet = walletRepository.findForUpdate(walletUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
-
-        WalletValidation.validateWithdrawal(wallet, debitAmount);
 
         debit(wallet, debitAmount);
     }

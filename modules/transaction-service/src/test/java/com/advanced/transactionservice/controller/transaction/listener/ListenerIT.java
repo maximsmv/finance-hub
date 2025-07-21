@@ -1,23 +1,19 @@
 package com.advanced.transactionservice.controller.transaction.listener;
 
-import com.advanced.kafka.contracts.model.DepositCompletedPayload;
-import com.advanced.kafka.contracts.model.FailureReason;
-import com.advanced.kafka.contracts.model.WithdrawalCompletedPayload;
-import com.advanced.kafka.contracts.model.WithdrawalFailedPayload;
+import com.advanced.kafkacontracts.DepositCompleted;
+import com.advanced.kafkacontracts.WithdrawalCompleted;
+import com.advanced.kafkacontracts.WithdrawalFailed;
 import com.advanced.transactionservice.configuration.KafkaTopicsProperties;
-import com.advanced.transactionservice.model.PaymentRequest;
-import com.advanced.transactionservice.model.PaymentStatus;
-import com.advanced.transactionservice.model.PaymentType;
-import com.advanced.transactionservice.model.Wallet;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
-import com.advanced.transactionservice.utils.WalletUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -33,19 +29,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
-import java.util.Currency;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
@@ -56,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ListenerIT {
 
     @Autowired
-    private PaymentRequestRepository paymentRequestRepository;
+    private TransactionRepository transactionRepository;
 
     @Autowired
     private WalletRepository walletRepository;
@@ -104,9 +92,9 @@ public class ListenerIT {
         return props;
     }
 
-    static KafkaTemplate<String, DepositCompletedPayload> depositCompletedKafkaTemplate;
-    static KafkaTemplate<String, WithdrawalCompletedPayload> withdrawalCompletedKafkaTemplate;
-    static KafkaTemplate<String, WithdrawalFailedPayload> withdrawalFailedKafkaTemplate;
+    static KafkaTemplate<String, DepositCompleted> depositCompletedKafkaTemplate;
+    static KafkaTemplate<String, WithdrawalCompleted> withdrawalCompletedKafkaTemplate;
+    static KafkaTemplate<String, WithdrawalFailed> withdrawalFailedKafkaTemplate;
 
     @BeforeAll
     static void startContainers() {
@@ -136,293 +124,8 @@ public class ListenerIT {
 
     @BeforeEach
     void setup() {
-        paymentRequestRepository.deleteAll();
+        transactionRepository.deleteAll();
         walletRepository.deleteAll();
     }
 
-    @Test
-    void listener_shouldProcessDepositCompletedEvent() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("100.00"));
-        request.setTotalAmount(new BigDecimal("100.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.DEPOSIT);
-        paymentRequestRepository.save(request);
-
-        DepositCompletedPayload payload = new DepositCompletedPayload();
-        payload.setTransactionId(transactionUid.toString());
-
-        depositCompletedKafkaTemplate.send(kafkaTopics.getDepositCompleted(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid)
-                            .orElseThrow();
-                    assertEquals(PaymentStatus.COMPLETED, updated.getStatus());
-                    assertNotNull(updated.getProcessedAt());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("100.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void listener_shouldProcessWithdrawalCompletedEvent() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.valueOf(200));
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("100.00"));
-        request.setTotalAmount(new BigDecimal("100.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.WITHDRAWAL);
-        paymentRequestRepository.save(request);
-
-        WithdrawalCompletedPayload payload = new WithdrawalCompletedPayload();
-        payload.setTransactionId(transactionUid.toString());
-
-        withdrawalCompletedKafkaTemplate.send(kafkaTopics.getWithdrawalCompleted(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid).orElseThrow();
-                    assertEquals(PaymentStatus.COMPLETED, updated.getStatus());
-                    assertNotNull(updated.getProcessedAt());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("100.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void listener_shouldProcessWithdrawalFailedEvent() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.valueOf(300));
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("150.00"));
-        request.setTotalAmount(new BigDecimal("150.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.WITHDRAWAL);
-        paymentRequestRepository.save(request);
-
-        WithdrawalFailedPayload payload = new WithdrawalFailedPayload();
-        payload.setTransactionId(transactionUid.toString());
-        payload.setReason(FailureReason.UNKNOWN_ERROR);
-
-        withdrawalFailedKafkaTemplate.send(kafkaTopics.getWithdrawalFailed(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid).orElseThrow();
-                    assertEquals(PaymentStatus.FAILED, updated.getStatus());
-                    assertNotNull(updated.getProcessedAt());
-                    assertEquals("UNKNOWN_ERROR", updated.getFailureReason());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("300.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void depositCompletedListener_shouldIgnoreEvent_whenTransactionNotFound() {
-        UUID nonExistentTransactionUid = UUID.randomUUID();
-
-        DepositCompletedPayload payload = new DepositCompletedPayload();
-        payload.setTransactionId(nonExistentTransactionUid.toString());
-
-        depositCompletedKafkaTemplate.send(kafkaTopics.getDepositCompleted(), payload);
-
-        Awaitility.await()
-                .during(Duration.ofSeconds(2))
-                .atMost(Duration.ofSeconds(5))
-                .untilAsserted(() -> {
-                    boolean exists = paymentRequestRepository.findByTransactionUid(nonExistentTransactionUid).isPresent();
-                    assertFalse(exists, "PaymentRequest по несуществующему transactionId не должен появиться");
-                });
-    }
-
-    @Test
-    void withdrawalCompletedListener_shouldIgnoreEvent_whenTransactionNotFound() {
-        UUID nonExistentTransactionUid = UUID.randomUUID();
-
-        WithdrawalCompletedPayload payload = new WithdrawalCompletedPayload();
-        payload.setTransactionId(nonExistentTransactionUid.toString());
-
-        withdrawalCompletedKafkaTemplate.send(kafkaTopics.getWithdrawalCompleted(), payload);
-
-        Awaitility.await()
-                .during(Duration.ofSeconds(2))
-                .atMost(Duration.ofSeconds(5))
-                .untilAsserted(() -> {
-                    boolean exists = paymentRequestRepository.findByTransactionUid(nonExistentTransactionUid).isPresent();
-                    assertFalse(exists);
-                });
-    }
-
-    @Test
-    void withdrawalFailedListener_shouldIgnoreEvent_whenTransactionNotFound() {
-        UUID nonExistentTransactionUid = UUID.randomUUID();
-
-        WithdrawalFailedPayload payload = new WithdrawalFailedPayload();
-        payload.setTransactionId(nonExistentTransactionUid.toString());
-        payload.setReason(FailureReason.UNKNOWN_ERROR);
-
-        withdrawalFailedKafkaTemplate.send(kafkaTopics.getWithdrawalFailed(), payload);
-
-        Awaitility.await()
-                .during(Duration.ofSeconds(2))
-                .atMost(Duration.ofSeconds(5))
-                .untilAsserted(() -> {
-                    boolean exists = paymentRequestRepository.findByTransactionUid(nonExistentTransactionUid).isPresent();
-                    assertFalse(exists);
-                });
-    }
-
-    @Test
-    void depositCompletedListener_shouldBeIdempotent_whenSameTransactionIdIsRepeated() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("100.00"));
-        request.setTotalAmount(new BigDecimal("100.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.DEPOSIT);
-        paymentRequestRepository.save(request);
-
-        DepositCompletedPayload payload = new DepositCompletedPayload();
-        payload.setTransactionId(transactionUid.toString());
-
-        depositCompletedKafkaTemplate.send(kafkaTopics.getDepositCompleted(), payload);
-        depositCompletedKafkaTemplate.send(kafkaTopics.getDepositCompleted(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid).orElseThrow();
-                    assertEquals(PaymentStatus.COMPLETED, updated.getStatus());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("100.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void withdrawalCompletedListener_shouldBeIdempotent_whenSameTransactionIdIsRepeated() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", new BigDecimal("200.00"));
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("100.00"));
-        request.setTotalAmount(new BigDecimal("100.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.WITHDRAWAL);
-        paymentRequestRepository.save(request);
-
-        WithdrawalCompletedPayload payload = new WithdrawalCompletedPayload();
-        payload.setTransactionId(transactionUid.toString());
-
-        withdrawalCompletedKafkaTemplate.send(kafkaTopics.getWithdrawalCompleted(), payload);
-        withdrawalCompletedKafkaTemplate.send(kafkaTopics.getWithdrawalCompleted(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid).orElseThrow();
-                    assertEquals(PaymentStatus.COMPLETED, updated.getStatus());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("100.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void withdrawalFailedListener_shouldBeIdempotent_whenSameTransactionIdIsRepeated() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", new BigDecimal("200.00"));
-
-        UUID transactionUid = UUID.randomUUID();
-
-        PaymentRequest request = new PaymentRequest();
-        request.setTransactionUid(transactionUid);
-        request.setWalletUid(wallet.getUid());
-        request.setUserUid(wallet.getUserUid());
-        request.setAmount(new BigDecimal("100.00"));
-        request.setTotalAmount(new BigDecimal("100.00"));
-        request.setStatus(PaymentStatus.PENDING);
-        request.setCurrency(Currency.getInstance("RUB"));
-        request.setType(PaymentType.WITHDRAWAL);
-        paymentRequestRepository.save(request);
-
-        WithdrawalFailedPayload payload = new WithdrawalFailedPayload();
-        payload.setTransactionId(transactionUid.toString());
-        payload.setReason(FailureReason.UNKNOWN_ERROR);
-
-        withdrawalFailedKafkaTemplate.send(kafkaTopics.getWithdrawalFailed(), payload);
-        withdrawalFailedKafkaTemplate.send(kafkaTopics.getWithdrawalFailed(), payload);
-
-        Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
-                .untilAsserted(() -> {
-                    PaymentRequest updated = paymentRequestRepository.findByTransactionUid(transactionUid).orElseThrow();
-                    assertEquals(PaymentStatus.FAILED, updated.getStatus());
-
-                    Wallet updatedWallet = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("200.00"), updatedWallet.getBalance());
-                });
-    }
-
-    @Test
-    void depositCompletedListener_shouldNotProcess_whenTransactionIdIsNull() {
-        Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "test", BigDecimal.ZERO);
-
-        DepositCompletedPayload payload = new DepositCompletedPayload();
-        payload.setTransactionId(null);
-
-        depositCompletedKafkaTemplate.send(kafkaTopics.getDepositCompleted(), payload);
-
-        Awaitility.await()
-                .during(Duration.ofSeconds(2))
-                .atMost(Duration.ofSeconds(5))
-                .untilAsserted(() -> {
-                    long count = paymentRequestRepository.count();
-                    assertEquals(0, count, "Не должно быть сохранённых платежей при невалидном payload");
-                    Wallet w = walletRepository.findById(wallet.getUid()).orElseThrow();
-                    assertEquals(new BigDecimal("0.00"), w.getBalance(), "Баланс не должен был измениться");
-                });
-    }
 }

@@ -11,24 +11,20 @@ import java.util.Currency;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payment_requests")
+@Table(name = "transactions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = {"id"})
-public class PaymentRequest {
+@EqualsAndHashCode(exclude = {"uid"})
+public class Transaction {
 
     @Id
     @GeneratedValue
     private UUID uid;
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    private OffsetDateTime modifiedAt;
+    @Column(name = "wallet_uid", nullable = false)
+    private UUID walletUid;
 
     @Column(nullable = false)
     private UUID userUid;
@@ -38,36 +34,28 @@ public class PaymentRequest {
 
     private BigDecimal fee;
 
-    private BigDecimal totalAmount;
-
-    private String comment;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "payment_type")
     private PaymentType type;
 
-    @Column(name = "wallet_uid", nullable = false)
-    private UUID walletUid;
+    @Column(nullable = false, length = 20)
+    private PaymentStatus status;
 
     @Column(name = "target_wallet_uid")
     private UUID targetWalletUid;
 
-    @ManyToOne
-    @JoinColumn(name = "transfer_operation_uid")
-    private TransferOperation transferOperation;
-
     private Currency currency;
+
+    private String comment;
 
     @Column(length = 256)
     private String failureReason;
 
-    private UUID transactionUid;
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 
-    @Column(nullable = false, length = 20)
-    private PaymentStatus status;
-
-    private OffsetDateTime processedAt;
-
-    private OffsetDateTime expiresAt;
+    @UpdateTimestamp
+    private OffsetDateTime modifiedAt;
 
 }

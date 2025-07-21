@@ -80,6 +80,21 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local-kafka
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - application-network
+
+  schema-registry:
+    container_name: schema-registry
+    image: confluentinc/cp-schema-registry:7.5.3
+    ports:
+      - "8086:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - application-network
 
   kafka:
     container_name: kafka
@@ -94,6 +109,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - application-network
 
   zookeeper:
     container_name: zookeeper
@@ -103,6 +120,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - application-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
@@ -171,19 +190,38 @@ services:
     networks:
       - application-network
 
-  transaction-service-postgres:
-    container_name: transaction-service-postgres
+  transaction-service-postgres-0:
+    container_name: transaction-service-postgres-0
     image: postgres:17.4
     ports:
       - "5433:5432"
     environment:
-      - POSTGRES_DB=db
+      - POSTGRES_DB=transaction_db_0
       - POSTGRES_USER=transaction-service
       - POSTGRES_PASSWORD=password
     volumes:
-      - transaction_service_postgres_data:/var/lib/postgresql/data
+      - transaction_service_postgres_0_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U person-service" ]
+      test: [ "CMD-SHELL", "pg_isready -U transaction-service" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - application-network
+
+  transaction-service-postgres-1:
+    container_name: transaction-service-postgres-1
+    image: postgres:17.4
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=transaction_db_1
+      - POSTGRES_USER=transaction-service
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - transaction_service_postgres_1_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U transaction-service" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -287,7 +325,9 @@ networks:
     driver: bridge
 
 volumes:
-  transaction_service_postgres_data:
+  transaction_service_postgres_0_data:
+    driver: local
+  transaction_service_postgres_1_data:
     driver: local
   person_service_gradle_cache:
     driver: local

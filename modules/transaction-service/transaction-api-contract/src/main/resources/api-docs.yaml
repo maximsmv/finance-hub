@@ -374,20 +374,14 @@ components:
         totalAmount:
           type: number
           format: BigDecimal
-        transactionUid:
-          type: string
-          format: UUID
     DepositConfirmRequest:
       type: object
       required:
         - walletUid
         - amount
+        - fee
         - currency
-        - transactionUid
       properties:
-        transactionUid:
-          type: string
-          format: UUID
         walletUid:
           type: string
           format: uuid
@@ -395,6 +389,10 @@ components:
           type: number
           format: BigDecimal
           minimum: 1
+        fee:
+          type: number
+          format: BigDecimal
+          minimum: 0
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
@@ -405,14 +403,11 @@ components:
     WithdrawalConfirmRequest:
       type: object
       required:
-        - transactionUid
         - walletUid
         - amount
+        - fee
         - currency
       properties:
-        transactionUid:
-          type: string
-          format: UUID
         walletUid:
           type: string
           format: uuid
@@ -420,6 +415,10 @@ components:
           type: number
           format: BigDecimal
           minimum: 1
+        fee:
+          type: number
+          format: BigDecimal
+          minimum: 0
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
@@ -432,14 +431,11 @@ components:
     TransferConfirmRequest:
       type: object
       required:
-        - transactionUid
         - walletUid
         - targetWalletUid
         - amount
+        - fee
       properties:
-        transactionUid:
-          type: string
-          format: UUID
         walletUid:
           type: string
           format: uuid
@@ -450,6 +446,10 @@ components:
           type: number
           format: BigDecimal
           minimum: 1
+        fee:
+          type: number
+          format: BigDecimal
+          minimum: 0
         currency:
           type: string
           pattern: '^[A-Z]{3}$'
@@ -465,7 +465,7 @@ components:
           format: uuid
         status:
           type: string
-          enum: [ confirmed, failed ]
+          enum: [ pending, completed ]
     TransactionStatusResponse:
       type: object
       properties:
@@ -477,7 +477,6 @@ components:
           format: uuid
         type:
           type: string
-          enum: [ deposit, withdrawal, transfer ]
         status:
           type: string
         amount:
@@ -487,9 +486,3 @@ components:
           type: string
         comment:
           type: string
-        createdAt:
-          type: string
-          format: date-time
-        completedAt:
-          type: string
-          format: date-time

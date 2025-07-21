@@ -3,32 +3,24 @@ spring:
     name: transaction-service
   datasource:
     driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-    url: jdbc:shardingsphere:classpath:sharding.yml
+    url: jdbc:shardingsphere:classpath:sharding-test.yml
   flyway:
     enabled: false
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-
   jackson:
     property-naming-strategy: SNAKE_CASE
 
   kafka:
-    bootstrap-servers: kafka:9092
     properties:
       schema.registry.url: http://schema-registry:8081
       specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
     consumer:
       group-id: transaction-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+
 
 kafka:
   topics:
@@ -37,29 +29,3 @@ kafka:
     deposit-completed: deposit-completed
     withdrawal-completed: withdrawal-completed
     withdrawal-failed: withdrawal-failed
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: prometheus,health,info
-
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-otel:
-  resource:
-    attributes:
-      service.name: transaction-service
-  exporter:
-    otlp:
-      endpoint: http://otel-collector:4318
-  logs:
-    exporter: otlp
-  metrics:
-    exporter: otlp
-  traces:
-    exporter: otlp

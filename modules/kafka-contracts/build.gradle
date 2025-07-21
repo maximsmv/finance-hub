@@ -1,10 +1,11 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'com.github.davidmc24.gradle.plugin.avro' version '1.9.1'
 }
 
 group = 'com.advanced'
-version = '1.0.5'
+version = '1.0.7'
 description = 'Kafka Contracts'
 
 java {
@@ -17,28 +18,35 @@ java {
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://packages.confluent.io/maven/'
+    }
 }
 
-tasks.register('generateKafkaSchemas', Exec) {
-    group = 'build'
-    description = 'Generate Kafka DTOs from AsyncAPI spec'
+dependencies {
+    implementation 'org.apache.avro:avro:1.11.3'
+}
 
-    if (System.properties['os.name'].toString().toLowerCase().contains('windows')) {
-        commandLine 'cmd', '/c', 'generate-kafka.bat'
-    } else {
-        commandLine './generate-kafka.sh'
-    }
+avro {
+    stringType = 'String'
+    fieldVisibility = 'PRIVATE'
+    createSetters = false
+    enableDecimalLogicalType = true
 }
 
 sourceSets {
     main {
         java {
             srcDir 'src/main/java'
+            srcDir 'build/generated-main-avro-java'
+        }
+        resources {
+            srcDir 'src/main/resources'
         }
     }
 }
 
-tasks.compileJava.dependsOn(generateKafkaSchemas)
+compileJava.dependsOn(generateAvroJava)
 
 publishing {
     publications {

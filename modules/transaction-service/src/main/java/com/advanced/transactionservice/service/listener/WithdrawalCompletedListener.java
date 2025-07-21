@@ -1,10 +1,9 @@
 package com.advanced.transactionservice.service.listener;
 
-import com.advanced.kafka.contracts.model.WithdrawalCompletedPayload;
-import com.advanced.transactionservice.model.PaymentRequest;
+import com.advanced.kafkacontracts.WithdrawalCompleted;
 import com.advanced.transactionservice.model.PaymentStatus;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
-import com.advanced.transactionservice.service.WalletService;
+import com.advanced.transactionservice.model.Transaction;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Slf4j
@@ -20,28 +18,22 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WithdrawalCompletedListener {
 
-    private final PaymentRequestRepository repository;
-
-    private final WalletService walletService;
+    private final TransactionRepository repository;
 
     @KafkaListener(topics = "withdrawal-completed", groupId = "transaction-service")
     @Transactional
-    public void handle(WithdrawalCompletedPayload payload) {
+    public void handle(WithdrawalCompleted payload) {
         log.info("Received withdrawal-completed event: {}", payload);
 
-        UUID transactionId = UUID.fromString(payload.getTransactionId());
-        PaymentRequest request = repository.findByTransactionUid(transactionId)
-                .orElseThrow(() -> new EntityNotFoundException("Transaction not found: " + transactionId));
+        UUID transactionUid = payload.getTransactionUid();
+        Transaction request = repository.findById(transactionUid)
+                .orElseThrow(() -> new EntityNotFoundException("Transaction not found: " + transactionUid));
 
         if (request.getStatus() == PaymentStatus.COMPLETED || request.getStatus() == PaymentStatus.FAILED) {
             return;
         }
 
-        walletService.withdraw(request.getWalletUid(), request.getTotalAmount());
-
         request.setStatus(PaymentStatus.COMPLETED);
-        request.setProcessedAt(OffsetDateTime.now());
-
         repository.save(request);
     }
 

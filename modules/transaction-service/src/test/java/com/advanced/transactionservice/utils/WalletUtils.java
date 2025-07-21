@@ -5,22 +5,18 @@ import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.UUID;
 
 public class WalletUtils {
 
-    public static WalletType createWalletType(WalletTypeRepository repository) {
-        WalletType type = new WalletType();
-        type.setCreator("system");
-        type.setName("default");
-        type.setUserType("default");
-        type.setStatus(WalletStatus.ACTIVE);
-        type.setCurrencyCode(Currency.getInstance("RUB"));
-        repository.save(type);
-        return type;
+    private static final UUID WALLET_TYPE_UID = UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e");
+
+    public static WalletType getWalletType(WalletTypeRepository repository) {
+        return repository.findById(WALLET_TYPE_UID)
+                .orElseThrow(EntityNotFoundException::new);
     }
 
     public static Wallet createWallet(
@@ -60,7 +56,7 @@ public class WalletUtils {
             WalletStatus status,
             UUID userUid
     ) {
-        WalletType type = createWalletType(typeRepository);
+        WalletType type = getWalletType(typeRepository);
         Wallet wallet = new Wallet();
         wallet.setName(name);
         wallet.setWalletType(type);

@@ -1,16 +1,16 @@
 package com.advanced.transactionservice.service.listener;
 
-import com.advanced.kafka.contracts.model.WithdrawalFailedPayload;
-import com.advanced.transactionservice.model.PaymentRequest;
+import com.advanced.kafkacontracts.WithdrawalFailed;
 import com.advanced.transactionservice.model.PaymentStatus;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
+import com.advanced.transactionservice.model.Transaction;
+import com.advanced.transactionservice.repository.TransactionRepository;
+import com.advanced.transactionservice.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Slf4j
@@ -18,26 +18,28 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WithdrawalFailedListener {
 
-    private final PaymentRequestRepository repository;
+    private final TransactionRepository repository;
+
+    private final WalletService walletService;
 
     @KafkaListener(topics = "withdrawal-failed", groupId = "transaction-service")
     @Transactional
-    public void handle(WithdrawalFailedPayload payload) {
+    public void handle(WithdrawalFailed payload) {
         log.info("Received withdrawal-failed event: {}", payload);
 
-        UUID transactionId = UUID.fromString(payload.getTransactionId());
-        PaymentRequest request = repository.findByTransactionUid(transactionId)
-                .orElseThrow(() -> new IllegalStateException("Transaction not found: " + transactionId));
+        UUID transactionUid = payload.getTransactionUid();
+        Transaction transaction = repository.findById(transactionUid)
+                .orElseThrow(() -> new IllegalStateException("Transaction not found: " + transactionUid));
 
-        if (request.getStatus() == PaymentStatus.COMPLETED || request.getStatus() == PaymentStatus.FAILED) {
+        if (transaction.getStatus() == PaymentStatus.COMPLETED || transaction.getStatus() == PaymentStatus.FAILED) {
             return;
         }
 
-        request.setStatus(PaymentStatus.FAILED);
-        request.setFailureReason(payload.getReason().name());
-        request.setProcessedAt(OffsetDateTime.now());
+        walletService.credit(transaction.getWalletUid(), transaction.getAmount().add(transaction.getFee()));
 
-        repository.save(request);
+        transaction.setStatus(PaymentStatus.FAILED);
+        transaction.setFailureReason(payload.getFailureReason());
+        repository.save(transaction);
     }
 
 }

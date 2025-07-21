@@ -1,14 +1,11 @@
 package com.advanced.transactionservice.controller.transaction.confirm;
 
 import com.advanced.contract.model.TransferConfirmRequest;
-import com.advanced.transactionservice.model.TransferOperation;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
-import com.advanced.transactionservice.repository.PaymentRequestRepository;
-import com.advanced.transactionservice.repository.TransferOperationRepository;
+import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
-import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.utils.WalletUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,8 +30,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
@@ -55,13 +49,7 @@ public class ConfirmTransferRestControllerV1Test {
     private WalletRepository walletRepository;
 
     @Autowired
-    private PaymentRequestRepository paymentRequestRepository;
-
-    @Autowired
-    private TransferOperationRepository transferOperationRepository;
-
-    @MockBean
-    private CalculationFeeService calculationFeeService;
+    private TransactionRepository transactionRepository;
 
     private static final Network network = Network.newNetwork();
 
@@ -96,8 +84,7 @@ public class ConfirmTransferRestControllerV1Test {
 
     @BeforeEach
     void setup() {
-        paymentRequestRepository.deleteAll();
-        transferOperationRepository.deleteAll();
+        transactionRepository.deleteAll();
         walletRepository.deleteAll();
     }
 
@@ -110,14 +97,12 @@ public class ConfirmTransferRestControllerV1Test {
         Wallet toWallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "to", BigDecimal.ZERO);
 
         TransferConfirmRequest request = new TransferConfirmRequest();
-        request.setTransactionUid(UUID.randomUUID());
         request.setWalletUid(fromWallet.getUid());
         request.setTargetWalletUid(toWallet.getUid());
         request.setAmount(transferAmount);
         request.setCurrency("RUB");
+        request.setFee(BigDecimal.ZERO);
         request.setComment("Test transfer");
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -131,8 +116,7 @@ public class ConfirmTransferRestControllerV1Test {
         assertEquals(initialBalance.subtract(transferAmount), updatedFrom.getBalance());
         assertEquals(transferAmount, updatedTo.getBalance());
 
-        assertEquals(2, paymentRequestRepository.count());
-        assertNotNull(transferOperationRepository.findByTransactionUid((request.getTransactionUid())));
+        assertEquals(1, transactionRepository.count());
     }
 
     @Test
@@ -144,11 +128,9 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(fromWallet.getUid());
         request.setTargetWalletUid(toWallet.getUid());
         request.setAmount(BigDecimal.valueOf(100));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
         request.setComment("Too much");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(BigDecimal.ZERO);
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -163,8 +145,8 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(UUID.randomUUID());
         request.setTargetWalletUid(UUID.randomUUID());
         request.setAmount(BigDecimal.valueOf(100));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -181,8 +163,8 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(fromWallet.getUid());
         request.setTargetWalletUid(UUID.randomUUID());
         request.setAmount(BigDecimal.valueOf(100));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -201,10 +183,8 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(fromWallet.getUid());
         request.setTargetWalletUid(toWallet.getUid());
         request.setAmount(BigDecimal.valueOf(100));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -222,10 +202,8 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(fromWallet.getUid());
         request.setTargetWalletUid(toWallet.getUid());
         request.setAmount(BigDecimal.valueOf(100));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -244,11 +222,9 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(sourceWallet.getUid());
         request.setTargetWalletUid(targetWallet.getUid());
         request.setAmount(BigDecimal.valueOf(50));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
         request.setComment("Idempotent test");
-        request.setTransactionUid(transactionUid);
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -271,11 +247,9 @@ public class ConfirmTransferRestControllerV1Test {
         request.setWalletUid(wallet.getUid());
         request.setTargetWalletUid(wallet.getUid());
         request.setAmount(BigDecimal.valueOf(50));
+        request.setFee(BigDecimal.ZERO);
         request.setCurrency("RUB");
         request.setComment("Self transfer");
-        request.setTransactionUid(UUID.randomUUID());
-
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
 
         webTestClient.post()
                 .uri("/api/v1/transactions/transfer/confirm")
@@ -291,16 +265,14 @@ public class ConfirmTransferRestControllerV1Test {
 
         List<BigDecimal> invalidAmounts = List.of(BigDecimal.ZERO, BigDecimal.valueOf(-10));
 
-        when(calculationFeeService.calculationTransferFee()).thenReturn(new BigDecimal("0.00"));
-
         for (BigDecimal invalidAmount : invalidAmounts) {
             TransferConfirmRequest request = new TransferConfirmRequest();
             request.setWalletUid(sourceWallet.getUid());
             request.setTargetWalletUid(targetWallet.getUid());
             request.setAmount(invalidAmount);
+            request.setFee(BigDecimal.ZERO);
             request.setCurrency("RUB");
             request.setComment("Invalid amount");
-            request.setTransactionUid(UUID.randomUUID());
 
             webTestClient.post()
                     .uri("/api/v1/transactions/transfer/confirm")
