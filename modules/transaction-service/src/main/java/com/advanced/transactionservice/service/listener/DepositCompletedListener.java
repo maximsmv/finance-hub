@@ -28,15 +28,15 @@ public class DepositCompletedListener {
         log.info("Received deposit-completed event: {}", payload);
 
         UUID transactionUid = payload.getTransactionUid();
-        Transaction request = repository.findById(transactionUid)
+        Transaction transaction = repository.findById(transactionUid)
                 .orElseThrow(() -> new IllegalStateException("Transaction not found: " + transactionUid));
 
-        if (request.getStatus() == PaymentStatus.COMPLETED || request.getStatus() == PaymentStatus.FAILED) {
+        if (transaction.getStatus() == PaymentStatus.COMPLETED || transaction.getStatus() == PaymentStatus.FAILED) {
             return;
         }
 
-        walletService.credit(request.getWalletUid(), request.getAmount().add(request.getFee()));
-        request.setStatus(PaymentStatus.COMPLETED);
-        repository.save(request);
+        walletService.credit(transaction.getWalletUid(), transaction.getUserUid(), transaction.getAmount().subtract(transaction.getFee()));
+        transaction.setStatus(PaymentStatus.COMPLETED);
+        repository.saveAndFlush(transaction);
     }
 }

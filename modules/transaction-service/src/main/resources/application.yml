@@ -28,7 +28,7 @@ spring:
         spring.json.trusted.packages: "*"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
 
 kafka:
   topics:

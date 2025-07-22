@@ -112,7 +112,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         transactionValidation.validateWithdrawal(wallet, request.getAmount());
 
-        walletService.debit(wallet.getWalletUid(), request.getAmount());
+        walletService.debit(wallet.getWalletUid(), wallet.getUserUid(), request.getAmount());
 
         Transaction transaction = TransactionMapper.fromWithdrawal(request, wallet);
         transactionRepository.saveAndFlush(transaction);
@@ -128,7 +128,7 @@ public class TransactionServiceImpl implements TransactionService {
         WalletResponse fromWallet = walletService.getWalletByUid(request.getWalletUid());
         WalletResponse toWallet = walletService.getWalletByUid(request.getTargetWalletUid());
 
-        walletService.transfer(fromWallet.getWalletUid(), toWallet.getWalletUid(), request.getAmount().add(request.getFee()), request.getAmount());
+        walletService.transfer(fromWallet.getWalletUid(), fromWallet.getUserUid(), toWallet.getWalletUid(), toWallet.getUserUid(), request.getAmount().add(request.getFee()), request.getAmount());
 
         Transaction transaction = TransactionMapper.fromTransfer(
                 request,

@@ -16,9 +16,16 @@ public interface WalletService {
 
     List<WalletResponse> getWalletsByUser(UUID userUid);
 
-    void transfer(UUID fromWalletUid, UUID toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount);
+    void transfer(
+            UUID fromWalletUid,
+            UUID fromUserUid,
+            UUID toWalletUid,
+            UUID toUserUid,
+            BigDecimal debitAmount,
+            BigDecimal creditAmount
+    );
 
-    void credit(UUID walletUid, BigDecimal creditAmount);
+    void credit(UUID walletUid, UUID userUid, BigDecimal creditAmount);
 
-    void debit(UUID walletUid, BigDecimal debitAmount);
+    void debit(UUID walletUid, UUID userUid, BigDecimal debitAmount);
 }

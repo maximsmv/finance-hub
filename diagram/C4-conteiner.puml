@@ -13,7 +13,8 @@ System_Boundary(financehub, "Finance Hub") {
   Container(transaction_service, "transaction-service", "Spring Boot", "Обработка транзакций и CRUD кошельков. Работает с PostgreSQL. Интеграция с Kafka.")
 
   ContainerDb(person_db, "PostgreSQL (person)", "БД персональных данных")
-  ContainerDb(transaction_db, "PostgreSQL (transaction)", "БД транзакций и кошельков")
+  ContainerDb(transaction_db_0, "PostgreSQL (transaction_0)", "БД транзакций и кошельков, шард 1")
+  ContainerDb(transaction_db_1, "PostgreSQL (transaction_1)", "БД транзакций и кошельков, шард 2")
 
   Container(otel_collector, "OpenTelemetry Collector", "OTel", "Сбор метрик, логов и трейсингов от всех сервисов")
 
@@ -33,7 +34,8 @@ Rel(individuals_api, person_service, "Проксирует запросы", "RES
 Rel(individuals_api, transaction_service, "Проксирует запросы", "REST")
 
 Rel(person_service, person_db, "Чтение и запись", "JDBC")
-Rel(transaction_service, transaction_db, "Чтение и запись", "JDBC")
+Rel(transaction_service, transaction_db_0, "Чтение и запись", "JDBC")
+Rel(transaction_service, transaction_db_1, "Чтение и запись", "JDBC")
 
 Rel(individuals_api, otel_collector, "Метрики, логи, трассировки", "OTLP")
 Rel(person_service, otel_collector, "Метрики, логи, трассировки", "OTLP")

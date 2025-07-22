@@ -42,7 +42,7 @@ ext {
 
 dependencies {
 	implementation project(':transaction-api-contract')
-	implementation 'com.advanced:kafka-contracts:1.0.8'
+	implementation 'com.advanced:kafka-contracts:1.0.9'
 
 	// ------------------------------ SPRING ------------------------------
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -97,15 +97,15 @@ flyway {
 }
 
 tasks.register('flywayMigrateDs0', FlywayMigrateTask) {
-	url = 'jdbc:postgresql://localhost:5433/transaction_db_0'
-	user = 'transaction-service'
-	password = 'password'
+	url 		= System.getenv('FLYWAY_MIGRATE_DS0_URL') 		?: 'jdbc:postgresql://localhost:5433/transaction_db_0'
+	user 		= System.getenv('FLYWAY_MIGRATE_DS0_USER') 		?: 'transaction-service'
+	password 	= System.getenv('FLYWAY_MIGRATE_DS0_PASSWORD') 	?: 'password'
 }
 
 tasks.register('flywayMigrateDs1', FlywayMigrateTask) {
-	url = 'jdbc:postgresql://localhost:5434/transaction_db_1'
-	user = 'transaction-service'
-	password = 'password'
+	url 		= System.getenv('FLYWAY_MIGRATE_DS0_URL') 		?: 'jdbc:postgresql://localhost:5434/transaction_db_1'
+	user 		= System.getenv('FLYWAY_MIGRATE_DS0_USER') 		?: 'transaction-service'
+	password 	= System.getenv('FLYWAY_MIGRATE_DS0_PASSWORD') 	?: 'password'
 }
 
 tasks.named('build') {

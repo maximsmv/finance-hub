@@ -66,10 +66,17 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public synchronized void transfer(UUID fromWalletUid, UUID toWalletUid, BigDecimal debitAmount, BigDecimal creditAmount) {
-        Wallet from = walletRepository.findForUpdate(fromWalletUid)
+    public synchronized void transfer(
+            UUID fromWalletUid,
+            UUID fromUserUid,
+            UUID toWalletUid,
+            UUID toUserUid,
+            BigDecimal debitAmount,
+            BigDecimal creditAmount
+    ) {
+        Wallet from = walletRepository.findForUpdate(fromWalletUid, fromUserUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
-        Wallet to = walletRepository.findForUpdate(toWalletUid)
+        Wallet to = walletRepository.findForUpdate(toWalletUid, toUserUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
 
         debit(from, debitAmount);
@@ -78,8 +85,8 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public synchronized void credit(UUID walletUid, BigDecimal creditAmount) {
-        Wallet wallet = walletRepository.findForUpdate(walletUid)
+    public synchronized void credit(UUID walletUid, UUID userUid, BigDecimal creditAmount) {
+        Wallet wallet = walletRepository.findForUpdate(walletUid, userUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
 
         credit(wallet, creditAmount);
@@ -87,8 +94,8 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     @Transactional
-    public synchronized void debit(UUID walletUid, BigDecimal debitAmount) {
-        Wallet wallet = walletRepository.findForUpdate(walletUid)
+    public synchronized void debit(UUID walletUid, UUID userUid, BigDecimal debitAmount) {
+        Wallet wallet = walletRepository.findForUpdate(walletUid, userUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
 
         debit(wallet, debitAmount);

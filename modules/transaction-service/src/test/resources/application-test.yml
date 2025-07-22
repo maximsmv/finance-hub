@@ -33,3 +33,8 @@ kafka:
 otel:
   javaagent:
     enabled: false
+
+logging:
+  level:
+    org.apache.kafka: DEBUG
+    org.springframework.kafka: DEBUG

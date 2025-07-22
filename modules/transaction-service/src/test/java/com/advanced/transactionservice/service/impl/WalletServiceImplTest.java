@@ -108,18 +108,27 @@ class WalletServiceImplTest {
 
         Wallet from = new Wallet();
         from.setUid(fromUid);
+        from.setUserUid(UUID.randomUUID());
         from.setBalance(BigDecimal.valueOf(100));
         from.setStatus(WalletStatus.ACTIVE);
 
         Wallet to = new Wallet();
         to.setUid(toUid);
+        to.setUserUid(UUID.randomUUID());
         to.setBalance(BigDecimal.valueOf(50));
         to.setStatus(WalletStatus.ACTIVE);
 
-        Mockito.when(walletRepository.findForUpdate(fromUid)).thenReturn(Optional.of(from));
-        Mockito.when(walletRepository.findForUpdate(toUid)).thenReturn(Optional.of(to));
+        Mockito.when(walletRepository.findForUpdate(fromUid, from.getUserUid())).thenReturn(Optional.of(from));
+        Mockito.when(walletRepository.findForUpdate(toUid, to.getUserUid())).thenReturn(Optional.of(to));
 
-        walletService.transfer(fromUid, toUid, BigDecimal.valueOf(30), BigDecimal.valueOf(25));
+        walletService.transfer(
+                fromUid,
+                from.getUserUid(),
+                toUid,
+                to.getUserUid(),
+                BigDecimal.valueOf(30),
+                BigDecimal.valueOf(25)
+        );
 
         assertEquals(new BigDecimal("70.00"), from.getBalance());
         assertEquals(new BigDecimal("75.00"), to.getBalance());

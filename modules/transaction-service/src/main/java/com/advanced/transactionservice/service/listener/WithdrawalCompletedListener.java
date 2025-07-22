@@ -26,15 +26,15 @@ public class WithdrawalCompletedListener {
         log.info("Received withdrawal-completed event: {}", payload);
 
         UUID transactionUid = payload.getTransactionUid();
-        Transaction request = repository.findById(transactionUid)
+        Transaction transaction = repository.findById(transactionUid)
                 .orElseThrow(() -> new EntityNotFoundException("Transaction not found: " + transactionUid));
 
-        if (request.getStatus() == PaymentStatus.COMPLETED || request.getStatus() == PaymentStatus.FAILED) {
+        if (transaction.getStatus() == PaymentStatus.COMPLETED || transaction.getStatus() == PaymentStatus.FAILED) {
             return;
         }
 
-        request.setStatus(PaymentStatus.COMPLETED);
-        repository.save(request);
+        transaction.setStatus(PaymentStatus.COMPLETED);
+        repository.saveAndFlush(transaction);
     }
 
 }

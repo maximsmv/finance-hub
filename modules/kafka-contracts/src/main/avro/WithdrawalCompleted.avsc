@@ -16,7 +16,7 @@
     },
     {
       "name": "failureReason",
-      "type": "string"
+      "type": ["null", "string"]
     },
     {
       "name": "timestamp",

@@ -35,11 +35,11 @@ public class WithdrawalFailedListener {
             return;
         }
 
-        walletService.credit(transaction.getWalletUid(), transaction.getAmount().add(transaction.getFee()));
+        walletService.credit(transaction.getWalletUid(), transaction.getUserUid(), transaction.getAmount().add(transaction.getFee()));
 
         transaction.setStatus(PaymentStatus.FAILED);
         transaction.setFailureReason(payload.getFailureReason());
-        repository.save(transaction);
+        repository.saveAndFlush(transaction);
     }
 
 }
