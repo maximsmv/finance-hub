@@ -72,6 +72,55 @@ services:
     networks:
       - application-network
 
+  transaction-service:
+    container_name: transaction-service
+    build:
+      context: ./modules/transaction-service
+      dockerfile: Dockerfile
+      args:
+        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
+        ARTIFACTORY_USER: person-service
+        ARTIFACTORY_PASSWORD: Person_service1
+    environment:
+      - FLYWAY_MIGRATE_DS0_URL=jdbc:postgresql://transaction-service-postgres-0:5432/transaction_db_0
+      - FLYWAY_MIGRATE_DS0_USER=transaction-service
+      - FLYWAY_MIGRATE_DS0_PASSWORD=password
+      - FLYWAY_MIGRATE_DS1_URL=jdbc:postgresql://transaction-service-postgres-1:5432/transaction_db_1
+      - FLYWAY_MIGRATE_DS1_USER=transaction-service
+      - FLYWAY_MIGRATE_DS1_PASSWORD=password
+    volumes:
+      - transaction_service_gradle_cache:/home/gradle/.gradle
+    depends_on:
+      transaction-service-postgres-0:
+        condition: service_healthy
+      transaction-service-postgres-1:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      kafka-contracts:
+        condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - application-network
+
+  kafka-contracts:
+    container_name: kafka-contracts-publish
+    build:
+      context: ./modules/kafka-contracts
+    environment:
+      ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local
+      ARTIFACTORY_USER: person-service
+      ARTIFACTORY_PASSWORD: Person_service1
+
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
@@ -90,7 +139,8 @@ services:
       - "8086:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9093
     depends_on:
       - kafka
     networks:
@@ -106,8 +156,10 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://localhost:9092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - application-network
@@ -183,7 +235,7 @@ services:
     volumes:
       - person_service_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U person-service" ]
+      test: [ "CMD-SHELL", "pg_isready -U person-service -d db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -202,10 +254,10 @@ services:
     volumes:
       - transaction_service_postgres_0_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U transaction-service" ]
+      test: [ "CMD-SHELL", "pg_isready -U transaction-service -d transaction_db_0" ]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
     networks:
       - application-network
 
@@ -221,10 +273,10 @@ services:
     volumes:
       - transaction_service_postgres_1_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U transaction-service" ]
+      test: [ "CMD-SHELL", "pg_isready -U transaction-service -d transaction_db_1" ]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
     networks:
       - application-network
 
@@ -328,6 +380,8 @@ volumes:
   transaction_service_postgres_0_data:
     driver: local
   transaction_service_postgres_1_data:
+    driver: local
+  transaction_service_gradle_cache:
     driver: local
   person_service_gradle_cache:
     driver: local

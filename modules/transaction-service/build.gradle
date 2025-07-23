@@ -104,9 +104,9 @@ tasks.register('flywayMigrateDs0', FlywayMigrateTask) {
 }
 
 tasks.register('flywayMigrateDs1', FlywayMigrateTask) {
-	url 		= System.getenv('FLYWAY_MIGRATE_DS0_URL') 		?: 'jdbc:postgresql://localhost:5434/transaction_db_1'
-	user 		= System.getenv('FLYWAY_MIGRATE_DS0_USER') 		?: 'transaction-service'
-	password 	= System.getenv('FLYWAY_MIGRATE_DS0_PASSWORD') 	?: 'password'
+	url 		= System.getenv('FLYWAY_MIGRATE_DS1_URL') 		?: 'jdbc:postgresql://localhost:5434/transaction_db_1'
+	user 		= System.getenv('FLYWAY_MIGRATE_DS1_USER') 		?: 'transaction-service'
+	password 	= System.getenv('FLYWAY_MIGRATE_DS1_PASSWORD') 	?: 'password'
 }
 
 tasks.named('build') {
