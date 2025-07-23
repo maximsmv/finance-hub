@@ -1,9 +1,12 @@
 package com.advanced.transactionservice.service;
 
 import com.advanced.contract.model.*;
+import com.advanced.transactionservice.model.PaymentStatus;
+import com.advanced.transactionservice.model.PaymentType;
 import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface TransactionService {
@@ -22,5 +25,10 @@ public interface TransactionService {
 
     TransactionStatusResponse getTransactionStatus(String transactionId);
 
-    List<TransactionStatusResponse> searchTransactions(String userUid, String walletUid, String type, String status, LocalDateTime dateFrom, LocalDateTime dateTo, int page, int size);
+    List<TransactionStatusResponse> searchTransactions(
+            String userUid, String walletUid,
+            PaymentType type, PaymentStatus status,
+            OffsetDateTime dateFrom, OffsetDateTime dateTo,
+            int page, int size
+    );
 }

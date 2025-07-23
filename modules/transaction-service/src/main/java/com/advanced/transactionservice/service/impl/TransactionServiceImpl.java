@@ -3,8 +3,11 @@ package com.advanced.transactionservice.service.impl;
 import com.advanced.contract.model.*;
 import com.advanced.transactionservice.mapper.KafkaPayloadMapper;
 import com.advanced.transactionservice.mapper.TransactionMapper;
+import com.advanced.transactionservice.model.PaymentStatus;
+import com.advanced.transactionservice.model.PaymentType;
 import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.repository.TransactionRepository;
+import com.advanced.transactionservice.repository.specification.TransactionSpecifications;
 import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.service.TransactionService;
 import com.advanced.transactionservice.service.WalletService;
@@ -13,12 +16,15 @@ import com.advanced.transactionservice.service.producer.WithdrawalRequestedProdu
 import com.advanced.transactionservice.service.validation.TransactionValidation;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -152,17 +158,23 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TransactionStatusResponse> searchTransactions(
             String userUid,
             String walletUid,
-            String type,
-            String status,
-            LocalDateTime dateFrom,
-            LocalDateTime dateTo,
+            PaymentType type,
+            PaymentStatus status,
+            OffsetDateTime dateFrom,
+            OffsetDateTime dateTo,
             int page,
             int size
     ) {
-        return List.of();
+        Specification<Transaction> spec = TransactionSpecifications.withFilters(userUid, walletUid, type, status, dateFrom, dateTo);
+        return transactionRepository
+                .findAll(spec, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .stream()
+                .map(TransactionMapper::toTransactionStatusResponse)
+                .toList();
     }
 
     private TransactionInitResponse getTransactionInitResponse(BigDecimal fee, BigDecimal amount, BigDecimal totalAmount) {

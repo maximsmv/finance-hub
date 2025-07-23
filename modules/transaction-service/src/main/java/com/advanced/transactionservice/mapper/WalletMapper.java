@@ -3,7 +3,6 @@ package com.advanced.transactionservice.mapper;
 import com.advanced.contract.model.CreateWalletRequest;
 import com.advanced.contract.model.WalletResponse;
 import com.advanced.transactionservice.model.Wallet;
-import com.advanced.transactionservice.model.WalletStatus;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

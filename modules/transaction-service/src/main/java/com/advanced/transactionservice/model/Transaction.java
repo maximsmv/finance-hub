@@ -38,6 +38,7 @@ public class Transaction {
     @Column(nullable = false, columnDefinition = "payment_type")
     private PaymentType type;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
