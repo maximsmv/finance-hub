@@ -1,9 +1,6 @@
 spring:
   application:
     name: transaction-service
-  datasource:
-    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-    url: jdbc:shardingsphere:classpath:sharding-test.yml
   flyway:
     enabled: false
   jackson:
