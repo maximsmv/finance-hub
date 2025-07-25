@@ -58,3 +58,6 @@ otel:
 
 person-service:
   base-url: http://localhost:8082
+
+transaction-service:
+  base-url: http://localhost:8083/api/v1

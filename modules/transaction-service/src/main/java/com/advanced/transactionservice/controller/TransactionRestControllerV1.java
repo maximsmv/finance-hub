@@ -4,12 +4,13 @@ import com.advanced.contract.model.*;
 import com.advanced.transactionservice.model.PaymentStatus;
 import com.advanced.transactionservice.model.PaymentType;
 import com.advanced.transactionservice.service.TransactionService;
+import io.micrometer.core.annotation.Timed;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -20,41 +21,57 @@ public class TransactionRestControllerV1 {
 
     private final TransactionService transactionService;
 
+    @Timed
+    @WithSpan
     @PostMapping("/deposit/init")
     public TransactionInitResponse init(@Valid @RequestBody DepositInitRequest request) {
         return transactionService.initDeposit(request);
     }
 
+    @Timed
+    @WithSpan
     @PostMapping("/withdrawal/init")
     public TransactionInitResponse init(@Valid @RequestBody WithdrawalInitRequest request) {
         return transactionService.initWithdrawal(request);
     }
 
+    @Timed
+    @WithSpan
     @PostMapping("/transfer/init")
     public TransactionInitResponse init(@Valid @RequestBody TransferInitRequest request) {
         return transactionService.initTransfer(request);
     }
 
+    @Timed
+    @WithSpan
     @PostMapping("/deposit/confirm")
     public TransactionConfirmResponse confirm(@Valid @RequestBody DepositConfirmRequest request) {
         return transactionService.confirmDeposit(request);
     }
 
+    @Timed
+    @WithSpan
     @PostMapping("/withdrawal/confirm")
     public TransactionConfirmResponse confirm(@Valid @RequestBody WithdrawalConfirmRequest request) {
         return transactionService.confirmWithdrawal(request);
     }
 
+    @Timed
+    @WithSpan
     @PostMapping("/transfer/confirm")
     public TransactionConfirmResponse confirm(@Valid @RequestBody TransferConfirmRequest request) {
         return transactionService.confirmTransfer(request);
     }
 
+    @Timed
+    @WithSpan
     @GetMapping("/{transactionId}/status")
     public TransactionStatusResponse getTransactionStatus(@PathVariable String transactionId) {
         return transactionService.getTransactionStatus(transactionId);
     }
 
+    @Timed
+    @WithSpan
     @GetMapping
     public List<TransactionStatusResponse> searchTransactions(
             @RequestParam(required = false) String userUid,

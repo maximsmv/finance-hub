@@ -51,7 +51,9 @@ public class RegistrationSagaIntegrationTest {
     private KeycloakIntegration keycloakIntegration;
 
     @Container
-    private static final MockServerContainer mockPersonService = new MockServerContainer(DockerImageName.parse("mockserver/mockserver").withTag("5.15.0"));
+    private static final MockServerContainer mockPersonService = new MockServerContainer(
+            DockerImageName.parse("mockserver/mockserver").withTag("5.15.0")
+    );
 
     private static MockServerClient mockServerClient;
 
@@ -87,7 +89,6 @@ public class RegistrationSagaIntegrationTest {
 
         return new RegistrationRequest(user, "password", "password");
     }
-
 
     @Test
     void registration_success_whenPersonServiceAndKeycloakWork() throws JsonProcessingException {

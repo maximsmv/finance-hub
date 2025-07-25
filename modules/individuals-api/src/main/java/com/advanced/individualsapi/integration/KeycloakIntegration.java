@@ -265,22 +265,6 @@ record KeycloakUserInfo(
         String created_at
 ) {}
 
-//@JsonIgnoreProperties(ignoreUnknown = true)
-//record UserRepresentation(
-//        String username,
-//        String email,
-//        boolean enabled,
-//        List<CredentialRepresentation> credentials,
-//        Map<String, List<String>> attributes
-//) {
-//    @JsonIgnoreProperties(ignoreUnknown = true)
-//    record CredentialRepresentation(
-//            boolean temporary,
-//            String type,
-//            String value
-//    ) {}
-//}
-
 record CachedToken(
         String token, Instant expiry
 ) {}

@@ -4,6 +4,9 @@ import com.advanced.kafkacontracts.WithdrawalCompleted;
 import com.advanced.transactionservice.model.PaymentStatus;
 import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.repository.TransactionRepository;
+import com.advanced.transactionservice.service.metric.TransactionMetricsService;
+import io.micrometer.core.annotation.Timed;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +21,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WithdrawalCompletedListener {
 
+    private final TransactionMetricsService metricsService;
+
     private final TransactionRepository repository;
 
+    @Timed
+    @WithSpan
     @KafkaListener(topics = "withdrawal-completed", groupId = "transaction-service")
     @Transactional
     public void handle(WithdrawalCompleted payload) {
@@ -35,6 +42,7 @@ public class WithdrawalCompletedListener {
 
         transaction.setStatus(PaymentStatus.COMPLETED);
         repository.saveAndFlush(transaction);
+        metricsService.writeMetrics(PaymentStatus.COMPLETED);
     }
 
 }

@@ -11,6 +11,7 @@ import com.advanced.transactionservice.repository.specification.TransactionSpeci
 import com.advanced.transactionservice.service.CalculationFeeService;
 import com.advanced.transactionservice.service.TransactionService;
 import com.advanced.transactionservice.service.WalletService;
+import com.advanced.transactionservice.service.metric.TransactionMetricsService;
 import com.advanced.transactionservice.service.producer.DepositRequestedProducer;
 import com.advanced.transactionservice.service.producer.WithdrawalRequestedProducer;
 import com.advanced.transactionservice.service.validation.TransactionValidation;
@@ -45,6 +46,8 @@ public class TransactionServiceImpl implements TransactionService {
     private final DepositRequestedProducer depositRequestedProducer;
 
     private final WithdrawalRequestedProducer withdrawalRequestedProducer;
+
+    private final TransactionMetricsService metricsService;
 
     @Override
     @Transactional(readOnly = true)
@@ -108,6 +111,7 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.saveAndFlush(transaction);
         depositRequestedProducer.send(KafkaPayloadMapper.toDepositRequestedPayload(transaction));
 
+        metricsService.writeMetrics(PaymentStatus.PENDING, PaymentType.DEPOSIT);
         return getConfirmResponse(transaction.getUid());
     }
 
@@ -125,6 +129,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         withdrawalRequestedProducer.send(KafkaPayloadMapper.toWithdrawalRequestedPayload(transaction, request.getDestination()));
 
+        metricsService.writeMetrics(PaymentStatus.PENDING, PaymentType.WITHDRAWAL);
         return getConfirmResponse(transaction.getUid());
     }
 
@@ -143,6 +148,7 @@ public class TransactionServiceImpl implements TransactionService {
         );
         transactionRepository.save(transaction);
 
+        metricsService.writeMetrics(PaymentStatus.COMPLETED, PaymentType.TRANSFER);
         return getConfirmResponse(transaction.getUid(), TransactionConfirmResponse.StatusEnum.COMPLETED);
     }
 
@@ -198,5 +204,4 @@ public class TransactionServiceImpl implements TransactionService {
         response.setStatus(statusEnum);
         return response;
     }
-
 }

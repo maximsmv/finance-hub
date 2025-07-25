@@ -273,22 +273,22 @@ components:
       properties:
         name:
           type: string
-        walletTypeUid:
+        wallet_type_uid:
           type: string
           format: uuid
-        userUid:
+        user_uid:
           type: string
           format: uuid
     WalletResponse:
       type: object
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
-        walletTypeUid:
+        wallet_type_uid:
           type: string
           format: uuid
-        userUid:
+        user_uid:
           type: string
           format: uuid
         currency:
@@ -298,17 +298,17 @@ components:
           format: BigDecimal
         status:
           type: string
-        createdAt:
+        created_at:
           type: string
           format: date-time
     DepositInitRequest:
       type: object
       required:
-        - walletUid
+        - wallet_uid
         - amount
         - currency
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
         amount:
@@ -322,11 +322,11 @@ components:
     WithdrawalInitRequest:
       type: object
       required:
-        - walletUid
+        - wallet_uid
         - amount
         - currency
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
         amount:
@@ -342,14 +342,14 @@ components:
     TransferInitRequest:
       type: object
       required:
-        - fromWalletUid
-        - toWalletUid
+        - from_wallet_uid
+        - to_wallet_uid
         - amount
       properties:
-        fromWalletUid:
+        from_wallet_uid:
           type: string
           format: uuid
-        toWalletUid:
+        to_wallet_uid:
           type: string
           format: uuid
         amount:
@@ -371,18 +371,18 @@ components:
         fee:
           type: number
           format: BigDecimal
-        totalAmount:
+        total_amount:
           type: number
           format: BigDecimal
     DepositConfirmRequest:
       type: object
       required:
-        - walletUid
+        - wallet_uid
         - amount
         - fee
         - currency
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
         amount:
@@ -403,12 +403,12 @@ components:
     WithdrawalConfirmRequest:
       type: object
       required:
-        - walletUid
+        - wallet_uid
         - amount
         - fee
         - currency
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
         amount:
@@ -431,15 +431,15 @@ components:
     TransferConfirmRequest:
       type: object
       required:
-        - walletUid
-        - targetWalletUid
+        - wallet_uid
+        - target_wallet_uid
         - amount
         - fee
       properties:
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
-        targetWalletUid:
+        target_wallet_uid:
           type: string
           format: uuid
         amount:
@@ -460,7 +460,7 @@ components:
     TransactionConfirmResponse:
       type: object
       properties:
-        transactionUid:
+        transaction_uid:
           type: string
           format: uuid
         status:
@@ -469,10 +469,10 @@ components:
     TransactionStatusResponse:
       type: object
       properties:
-        transactionUid:
+        transaction_uid:
           type: string
           format: uuid
-        walletUid:
+        wallet_uid:
           type: string
           format: uuid
         type:
@@ -482,7 +482,7 @@ components:
         amount:
           type: number
           format: BigDecimal
-        failureReason:
+        failure_reason:
           type: string
         comment:
           type: string

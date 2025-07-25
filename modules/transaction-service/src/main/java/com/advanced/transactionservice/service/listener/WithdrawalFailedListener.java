@@ -5,6 +5,9 @@ import com.advanced.transactionservice.model.PaymentStatus;
 import com.advanced.transactionservice.model.Transaction;
 import com.advanced.transactionservice.repository.TransactionRepository;
 import com.advanced.transactionservice.service.WalletService;
+import com.advanced.transactionservice.service.metric.TransactionMetricsService;
+import io.micrometer.core.annotation.Timed;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,10 +21,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WithdrawalFailedListener {
 
+    private final TransactionMetricsService metricsService;
+
     private final TransactionRepository repository;
 
     private final WalletService walletService;
 
+    @Timed
+    @WithSpan
     @KafkaListener(topics = "withdrawal-failed", groupId = "transaction-service")
     @Transactional
     public void handle(WithdrawalFailed payload) {
@@ -40,6 +47,7 @@ public class WithdrawalFailedListener {
         transaction.setStatus(PaymentStatus.FAILED);
         transaction.setFailureReason(payload.getFailureReason());
         repository.saveAndFlush(transaction);
+        metricsService.writeMetrics(PaymentStatus.FAILED);
     }
 
 }
