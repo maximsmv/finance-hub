@@ -1,8 +1,6 @@
 package com.advanced.transactionservice;
 
 import org.flywaydb.core.Flyway;
-import org.junit.Before;
-import org.junit.jupiter.api.BeforeAll;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -18,14 +16,9 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    public static class FixedPortPostgreSQLContainer extends PostgreSQLContainer<FixedPortPostgreSQLContainer> {
-        public FixedPortPostgreSQLContainer(String dockerImageName) {
+    public static class FlywayMigrateAndPostgreSQLContainer extends PostgreSQLContainer<FlywayMigrateAndPostgreSQLContainer> {
+        public FlywayMigrateAndPostgreSQLContainer(String dockerImageName) {
             super(dockerImageName);
-        }
-
-        public FixedPortPostgreSQLContainer withFixedExposedPort(int hostPort, int containerPort) {
-            super.addFixedExposedPort(hostPort, containerPort);
-            return this;
         }
 
         @Override
@@ -41,16 +34,14 @@ public abstract class AbstractIntegrationTest {
     private static final Network network = Network.newNetwork();
 
     @Container
-    public static FixedPortPostgreSQLContainer POSTGRES_0 = new FixedPortPostgreSQLContainer("postgres:latest")
-            .withFixedExposedPort(65431, 5432)
+    public static FlywayMigrateAndPostgreSQLContainer POSTGRES_0 = new FlywayMigrateAndPostgreSQLContainer("postgres:latest")
             .withDatabaseName("transactdb_0")
             .withUsername("postgres")
             .withPassword("test")
             .withReuse(true);
 
     @Container
-    public static FixedPortPostgreSQLContainer POSTGRES_1 = new FixedPortPostgreSQLContainer("postgres:latest")
-            .withFixedExposedPort(65432, 5432)
+    public static FlywayMigrateAndPostgreSQLContainer POSTGRES_1 = new FlywayMigrateAndPostgreSQLContainer("postgres:latest")
             .withDatabaseName("transactdb_1")
             .withUsername("postgres")
             .withPassword("test")
@@ -86,13 +77,14 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("spring.kafka.properties.schema.registry.url", () ->
                 "http://" + schemaRegistry.getHost() + ":" + schemaRegistry.getMappedPort(8081));
-        registry.add("DS_0_JDBC_URL",() -> POSTGRES_0.getJdbcUrl());
-        registry.add("DS_0_USERNAME",() -> POSTGRES_0.getUsername());
-        registry.add("DS_0_PASSWORD",() -> POSTGRES_0.getPassword());
-        registry.add("DS_1_JDBC_URL",() -> POSTGRES_1.getJdbcUrl());
-        registry.add("DS_1_USERNAME",() -> POSTGRES_1.getUsername());
-        registry.add("DS_1_PASSWORD",() -> POSTGRES_1.getPassword());
-        registry.add("SQL_SHOW",() -> "true");
+        registry.add("shards.count",() -> 2);
+        registry.add("shards.datasources.ds_0.jdbc_url",() -> POSTGRES_0.getJdbcUrl());
+        registry.add("shards.datasources.ds_0.username",() -> POSTGRES_0.getUsername());
+        registry.add("shards.datasources.ds_0.password",() -> POSTGRES_0.getPassword());
+        registry.add("shards.datasources.ds_1.jdbc_url",() -> POSTGRES_1.getJdbcUrl());
+        registry.add("shards.datasources.ds_1.username",() -> POSTGRES_1.getUsername());
+        registry.add("shards.datasources.ds_1.password",() -> POSTGRES_1.getPassword());
+        registry.add("shards.SQL_SHOW",() -> "true");
 
     }
 }

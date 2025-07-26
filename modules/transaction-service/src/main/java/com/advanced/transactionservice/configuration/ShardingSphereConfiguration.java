@@ -1,6 +1,8 @@
 package com.advanced.transactionservice.configuration;
 
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.driver.api.ShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -8,6 +10,7 @@ import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,21 +19,14 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Configuration
-public class ShardingSphereConfig {
+@ConfigurationProperties(prefix = "shards")
+public class ShardingSphereConfiguration {
 
-    @Value("${DS_0_JDBC_URL:jdbc:postgresql://transaction-service-postgres-0:5432/transaction_db_0}")
-    private String ds0JdbcUrl;
-    @Value("${DS_0_USERNAME:transaction-service}")
-    private String ds0Username;
-    @Value("${DS_0_PASSWORD:password}")
-    private String ds0Password;
+    @Setter
+    private int count;
 
-    @Value("${DS_1_JDBC_URL:jdbc:postgresql://transaction-service-postgres-1:5432/transaction_db_1}")
-    private String ds1JdbcUrl;
-    @Value("${DS_1_USERNAME:transaction-service}")
-    private String ds1Username;
-    @Value("${DS_1_PASSWORD:password}")
-    private String ds1Password;
+    @Setter
+    private Map<String, DataSourceProperties> datasources = new HashMap<>();
 
     @Value("${SQL_SHOW:true}")
     private boolean sqlShow;
@@ -38,18 +34,27 @@ public class ShardingSphereConfig {
     @Bean
     public DataSource dataSource() throws SQLException {
         Map<String, DataSource> dataSourceMap = new HashMap<>();
-        dataSourceMap.put("ds_0", createDataSource(ds0JdbcUrl, ds0Username, ds0Password));
-        dataSourceMap.put("ds_1", createDataSource(ds1JdbcUrl, ds1Username, ds1Password));
+
+        for (int i = 0; i < count; i++) {
+            String name = "ds_" + i;
+            DataSourceProperties props = datasources.get(name);
+            if (props == null) {
+                throw new IllegalStateException("Missing datasource config for " + name);
+            }
+            dataSourceMap.put(name, createDataSource(props));
+        }
 
         ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
 
+        String actualDataNodesExpr = "ds_${0.." + (count - 1) + "}";
+
         ShardingTableRuleConfiguration transactionsRule = new ShardingTableRuleConfiguration(
-                "transactions", "ds_${0..1}.transactions");
+                "transactions", actualDataNodesExpr + ".transactions");
         transactionsRule.setDatabaseShardingStrategy(
                 new StandardShardingStrategyConfiguration("user_uid", "database_inline"));
 
         ShardingTableRuleConfiguration walletsRule = new ShardingTableRuleConfiguration(
-                "wallets", "ds_${0..1}.wallets");
+                "wallets", actualDataNodesExpr + ".wallets");
         walletsRule.setDatabaseShardingStrategy(
                 new StandardShardingStrategyConfiguration("user_uid", "database_inline"));
 
@@ -57,7 +62,7 @@ public class ShardingSphereConfig {
         shardingRuleConfig.getTables().add(walletsRule);
 
         Properties algorithmProps = new Properties();
-        algorithmProps.setProperty("algorithm-expression", "ds_${(user_uid.hashCode() % 2 + 2) % 2}");
+        algorithmProps.setProperty("algorithm-expression", "ds_${(user_uid.hashCode() % " + count + " + " + count + ") % " + count + "}");
         shardingRuleConfig.getShardingAlgorithms()
                 .put("database_inline", new AlgorithmConfiguration("INLINE", algorithmProps));
 
@@ -73,16 +78,26 @@ public class ShardingSphereConfig {
         return ShardingSphereDataSourceFactory.createDataSource(
                 dataSourceMap,
                 Arrays.asList(shardingRuleConfig, broadcastRuleConfig),
-                props);
+                props
+        );
     }
 
-    private DataSource createDataSource(String jdbcUrl, String username, String password) {
-        HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setJdbcUrl(jdbcUrl);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-        return dataSource;
+    private DataSource createDataSource(DataSourceProperties props) {
+        HikariDataSource ds = new HikariDataSource();
+        ds.setDriverClassName("org.postgresql.Driver");
+        ds.setJdbcUrl(props.getJdbcUrl());
+        ds.setUsername(props.getUsername());
+        ds.setPassword(props.getPassword());
+        return ds;
+    }
+
+    @Setter
+    @Getter
+    public static class DataSourceProperties {
+        private String jdbcUrl;
+        private String username;
+        private String password;
+
     }
 
 }

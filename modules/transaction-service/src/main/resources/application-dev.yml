@@ -6,20 +6,14 @@ spring:
   config:
     activate:
       on-profile: dev
-  datasource:
-    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-    url: jdbc:shardingsphere:classpath:sharding-dev.yml
   flyway:
     enabled: false
-
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: true
-
   jackson:
     property-naming-strategy: SNAKE_CASE
-
   kafka:
     bootstrap-servers: localhost:9092
     properties:
@@ -35,6 +29,18 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+
+shards:
+  count: 2
+  datasources:
+    ds_0:
+      jdbc-url: jdbc:postgresql://localhost:5433/transaction_db_0
+      username: transaction-service
+      password: password
+    ds_1:
+      jdbc-url: jdbc:postgresql://localhost:5434/transaction_db_1
+      username: transaction-service
+      password: password
 
 kafka:
   topics:

@@ -5,7 +5,6 @@ spring:
     enabled: false
   jackson:
     property-naming-strategy: SNAKE_CASE
-
   kafka:
     properties:
       schema.registry.url: http://schema-registry:8081
