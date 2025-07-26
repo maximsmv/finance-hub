@@ -23,9 +23,11 @@ import java.util.*;
 public class ShardingSphereConfiguration {
 
     @Setter
+    @Getter
     private int count;
 
     @Setter
+    @Getter
     private Map<String, DataSourceProperties> datasources = new HashMap<>();
 
     @Value("${SQL_SHOW:true}")
