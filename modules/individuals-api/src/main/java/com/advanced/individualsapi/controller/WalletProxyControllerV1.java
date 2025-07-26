@@ -1,8 +1,8 @@
 package com.advanced.individualsapi.controller;
 
-import com.advanced.contract.api.WalletRestControllerV1Api;
 import com.advanced.contract.model.WalletResponse;
 import com.advanced.individualsapi.dto.CreateWalletRequest;
+import com.advanced.individualsapi.service.proxy.WalletProxyService;
 import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
@@ -21,30 +21,22 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WalletProxyControllerV1 {
 
-    private final WalletRestControllerV1Api transactionClient;
+    private final WalletProxyService proxyService;
 
     @Timed
     @WithSpan
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public Flux<WalletResponse> getWalletsByCurrentUser(
-            @AuthenticationPrincipal Jwt jwt
-    ) {
-        return extractUserUid(jwt)
-                .flatMapMany(userUid -> transactionClient.getWalletsByUser(userUid.toString()));
+    public Flux<WalletResponse> getWalletsByCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+        return proxyService.getWalletsByCurrentUser(jwt);
     }
 
     @Timed
     @WithSpan
     @GetMapping("/{walletUid}")
     @ResponseStatus(HttpStatus.OK)
-    public Mono<WalletResponse> getWalletByUid(
-            @PathVariable UUID walletUid
-    ) {
-        //TODO: Тут необходимо сделать проверку userUid у wallet с пользовательским, чтобы контролировать доступность данных
-        //TODO: Либо всегда прокидывать во всех запросах UserUid - это ограничение вывода данных + transaction-service сразу будет знать в какой шард идти
-
-        return transactionClient.getWalletByUid(walletUid.toString());
+    public Mono<WalletResponse> getWalletByUid(@PathVariable UUID walletUid) {
+        return proxyService.getWalletByUid(walletUid);
     }
 
     @Timed
@@ -54,31 +46,6 @@ public class WalletProxyControllerV1 {
             @Valid @RequestBody Mono<CreateWalletRequest> requestMono,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        return extractUserUid(jwt)
-                .flatMap(userUid -> requestMono
-                        .map(body -> toContractRequest(body, userUid))
-                        .flatMap(transactionClient::createWallet)
-                );
-    }
-
-    private Mono<UUID> extractUserUid(Jwt jwt) {
-        Object userUidRaw = jwt.getClaims().get("user_id");
-
-        if (userUidRaw == null) {
-            return Mono.error(new IllegalArgumentException("user_id not found in token"));
-        }
-
-        try {
-            return Mono.just(UUID.fromString(userUidRaw.toString()));
-        } catch (IllegalArgumentException ex) {
-            return Mono.error(new IllegalArgumentException("Invalid user_id format in token"));
-        }
-    }
-
-    private com.advanced.contract.model.CreateWalletRequest toContractRequest(CreateWalletRequest body, UUID userUid) {
-        return new com.advanced.contract.model.CreateWalletRequest()
-                .name(body.name())
-                .walletTypeUid(body.walletTypeUid())
-                .userUid(userUid);
+        return proxyService.createWallet(requestMono, jwt);
     }
 }

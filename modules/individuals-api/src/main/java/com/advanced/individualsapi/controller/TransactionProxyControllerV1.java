@@ -1,7 +1,7 @@
 package com.advanced.individualsapi.controller;
 
-import com.advanced.contract.api.TransactionRestControllerV1Api;
 import com.advanced.contract.model.*;
+import com.advanced.individualsapi.service.proxy.TransactionProxyService;
 import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.validation.Valid;
@@ -14,24 +14,22 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
 public class TransactionProxyControllerV1 {
 
-    private final TransactionRestControllerV1Api transactionClient;
+    private final TransactionProxyService proxyService;
 
     @Timed
     @WithSpan
     @PostMapping("/{type}/init")
     public Mono<TransactionInitResponse> initTransaction(
             @PathVariable String type,
-            @Valid @RequestBody Mono<InitRequest> requestMono
+            @RequestBody Mono<InitRequest> requestMono
     ) {
-        return requestMono
-                .flatMap(req -> transactionClient.init(type, req));
+        return proxyService.init(type, requestMono);
     }
 
     @Timed
@@ -39,19 +37,16 @@ public class TransactionProxyControllerV1 {
     @PostMapping("/{type}/confirm")
     public Mono<TransactionConfirmResponse> confirmTransaction(
             @PathVariable String type,
-            @Valid @RequestBody Mono<ConfirmRequest> requestMono
+            @RequestBody Mono<ConfirmRequest> requestMono
     ) {
-        return requestMono
-                .flatMap(req -> transactionClient.confirm(type, req));
+        return proxyService.confirm(type, requestMono);
     }
 
     @Timed
     @WithSpan
     @GetMapping("/{transactionId}/status")
-    public Mono<TransactionStatusResponse> getTransactionStatus(
-            @PathVariable String transactionId
-    ) {
-        return transactionClient.getTransactionStatus(transactionId);
+    public Mono<TransactionStatusResponse> getTransactionStatus(@PathVariable String transactionId) {
+        return proxyService.getTransactionStatus(transactionId);
     }
 
     @Timed
@@ -67,19 +62,7 @@ public class TransactionProxyControllerV1 {
             @RequestParam(required = false, defaultValue = "10") Integer size,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String userUid = Optional.ofNullable(jwt.getClaimAsString("user_id"))
-                .orElseThrow(() -> new IllegalArgumentException("user_id not found in token"));
-
-        return transactionClient.searchTransactions(
-                userUid,
-                walletUid,
-                type,
-                status,
-                dateFrom,
-                dateTo,
-                page,
-                size
-        );
+        return proxyService.searchTransactions(jwt, walletUid, type, status, dateFrom, dateTo, page, size);
     }
 
 }

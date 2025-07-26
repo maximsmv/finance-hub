@@ -143,7 +143,7 @@ services:
       - "8085:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local-kafka
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
     networks:
       - application-network
 
