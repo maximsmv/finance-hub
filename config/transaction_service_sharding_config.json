@@ -1,0 +1,15 @@
+{
+  "count":2,
+  "datasources":{
+    "ds_0":{
+      "jdbcUrl":"jdbc:postgresql://transaction-service-postgres-0:5432/transaction_db_0",
+      "username":"transaction-service",
+      "password":"password"
+    },
+    "ds_1":{
+      "jdbcUrl":"jdbc:postgresql://transaction-service-postgres-1:5432/transaction_db_1",
+      "username":"transaction-service",
+      "password":"password"
+    }
+  }
+}

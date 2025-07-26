@@ -23,23 +23,12 @@ RUN gradle build --no-daemon -x test --debug
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 ARG VERSION=1.0.0
+
 COPY --from=builder /app/build/libs/transaction-service-${VERSION}.jar ./app.jar
 
-# Установка Flyway CLI
-RUN apt-get update && apt-get install -y wget unzip && \
-    wget -q https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz && \
-    tar -xzf flyway-commandline-9.22.3-linux-x64.tar.gz && \
-    mv flyway-9.22.3 /opt/flyway && \
-    ln -s /opt/flyway/flyway /usr/local/bin/flyway && \
-    rm flyway-commandline-9.22.3-linux-x64.tar.gz
-
-# Копирование миграций
-COPY src/main/resources/db/migration /app/db/migration
-COPY migrate-and-run.sh ./migrate-and-run.sh
-RUN chmod +x migrate-and-run.sh
 EXPOSE 8083
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
     CMD curl -f http://localhost:8083/actuator/health || exit 1
 
-ENTRYPOINT ["./migrate-and-run.sh"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

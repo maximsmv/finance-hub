@@ -7,6 +7,7 @@ import com.advanced.transactionservice.model.WalletStatus;
 import com.advanced.transactionservice.model.WalletType;
 import com.advanced.transactionservice.repository.WalletRepository;
 import com.advanced.transactionservice.repository.WalletTypeRepository;
+import com.advanced.transactionservice.utils.WalletUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,14 +50,14 @@ public class ShardingTest extends AbstractIntegrationTest {
         wallet0.setStatus(WalletStatus.ACTIVE);
         wallet0.setName("wallet0");
         wallet0.setBalance(BigDecimal.ZERO);
-        wallet0.setWalletType(walletTypeRepository.findById(UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e")).orElseThrow());
+        wallet0.setWalletType(walletTypeRepository.findById(WalletUtils.WALLET_TYPE_UID).orElseThrow());
 
         Wallet wallet1 = new Wallet();
         wallet1.setUserUid(userInShard1);
         wallet1.setStatus(WalletStatus.ACTIVE);
         wallet1.setName("wallet0");
         wallet1.setBalance(BigDecimal.ZERO);
-        wallet1.setWalletType(walletTypeRepository.findById(UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e")).orElseThrow());
+        wallet1.setWalletType(walletTypeRepository.findById(WalletUtils.WALLET_TYPE_UID).orElseThrow());
 
         walletRepository.save(wallet0);
         walletRepository.save(wallet1);

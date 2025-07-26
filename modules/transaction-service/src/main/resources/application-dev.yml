@@ -30,17 +30,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
 
-shards:
-  count: 2
-  datasources:
-    ds_0:
-      jdbc-url: jdbc:postgresql://localhost:5433/transaction_db_0
-      username: transaction-service
-      password: password
-    ds_1:
-      jdbc-url: jdbc:postgresql://localhost:5434/transaction_db_1
-      username: transaction-service
-      password: password
+SHARDS_CONFIG_PATH: shards_config-dev.json
 
 kafka:
   topics:

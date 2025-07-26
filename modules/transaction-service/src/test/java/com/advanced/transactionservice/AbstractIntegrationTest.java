@@ -1,5 +1,7 @@
 package com.advanced.transactionservice;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.flywaydb.core.Flyway;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -11,6 +13,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import java.util.Map;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Testcontainers
@@ -77,14 +81,31 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
         registry.add("spring.kafka.properties.schema.registry.url", () ->
                 "http://" + schemaRegistry.getHost() + ":" + schemaRegistry.getMappedPort(8081));
-        registry.add("shards.count",() -> 2);
-        registry.add("shards.datasources.ds_0.jdbc_url",() -> POSTGRES_0.getJdbcUrl());
-        registry.add("shards.datasources.ds_0.username",() -> POSTGRES_0.getUsername());
-        registry.add("shards.datasources.ds_0.password",() -> POSTGRES_0.getPassword());
-        registry.add("shards.datasources.ds_1.jdbc_url",() -> POSTGRES_1.getJdbcUrl());
-        registry.add("shards.datasources.ds_1.username",() -> POSTGRES_1.getUsername());
-        registry.add("shards.datasources.ds_1.password",() -> POSTGRES_1.getPassword());
         registry.add("shards.SQL_SHOW",() -> "true");
+        registry.add("SHARDS_CONFIG", AbstractIntegrationTest::buildShardsConfigJson);
+    }
 
+    private static String buildShardsConfigJson() {
+        Map<String, Object> config = Map.of(
+                "count", 2,
+                "datasources", Map.of(
+                        "ds_0", Map.of(
+                                "jdbcUrl", POSTGRES_0.getJdbcUrl(),
+                                "username", POSTGRES_0.getUsername(),
+                                "password", POSTGRES_0.getPassword()
+                        ),
+                        "ds_1", Map.of(
+                                "jdbcUrl", POSTGRES_1.getJdbcUrl(),
+                                "username", POSTGRES_1.getUsername(),
+                                "password", POSTGRES_1.getPassword()
+                        )
+                )
+        );
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.writeValueAsString(config);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Ошибка парсинга конфигурации шардирования", e);
+        }
     }
 }

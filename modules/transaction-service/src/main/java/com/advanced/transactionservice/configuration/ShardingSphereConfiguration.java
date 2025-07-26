@@ -1,8 +1,10 @@
 package com.advanced.transactionservice.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.broadcast.config.BroadcastRuleConfiguration;
 import org.apache.shardingsphere.driver.api.ShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -10,39 +12,47 @@ import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
 
+@Slf4j
 @Configuration
-@ConfigurationProperties(prefix = "shards")
 public class ShardingSphereConfiguration {
 
-    @Setter
-    @Getter
-    private int count;
+    @Value("${SHARDS_CONFIG:}")
+    private String shardsConfigJson;
 
-    @Setter
-    @Getter
-    private Map<String, DataSourceProperties> datasources = new HashMap<>();
+    @Value("${SHARDS_CONFIG_PATH:}")
+    private String shardsConfigPath;
 
     @Value("${SQL_SHOW:true}")
     private boolean sqlShow;
 
+    @Getter
+    private final Map<String, DataSourceProperties> datasources = new HashMap<>();
+
     @Bean
     public DataSource dataSource() throws SQLException {
+        ShardSettings shardSettings = loadShardSettings();
+
         Map<String, DataSource> dataSourceMap = new HashMap<>();
+        int count = shardSettings.getCount();
 
         for (int i = 0; i < count; i++) {
             String name = "ds_" + i;
-            DataSourceProperties props = datasources.get(name);
+            DataSourceProperties props = shardSettings.getDatasources().get(name);
             if (props == null) {
+                log.error("Missing datasource config for {}",  name);
                 throw new IllegalStateException("Missing datasource config for " + name);
             }
+            datasources.put(name, props);
             dataSourceMap.put(name, createDataSource(props));
         }
 
@@ -99,7 +109,40 @@ public class ShardingSphereConfiguration {
         private String jdbcUrl;
         private String username;
         private String password;
-
     }
 
+    private ShardSettings loadShardSettings() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            if (shardsConfigJson != null && !shardsConfigJson.isBlank()) {
+                log.info("Загружаю SHARDS_CONFIG из строки окружения");
+                return mapper.readValue(shardsConfigJson, ShardSettings.class);
+            } else if (shardsConfigPath != null && !shardsConfigPath.isBlank()) {
+                log.info("Загружаю SHARDS_CONFIG из файла: {}", shardsConfigPath);
+
+                InputStream is;
+
+                Path path = Path.of(shardsConfigPath);
+                if (Files.exists(path)) {
+                    is = Files.newInputStream(path);
+                } else {
+                    is = getClass().getClassLoader().getResourceAsStream(shardsConfigPath);
+                    if (is == null) {
+                        log.error("Файл не найден: {}", shardsConfigPath);
+                        throw new IllegalStateException("Файл не найден: " + shardsConfigPath);
+                    }
+                }
+
+                return mapper.readValue(is, ShardSettings.class);
+            } else {
+                log.error("Ни SHARDS_CONFIG, ни SHARDS_CONFIG_PATH не заданы");
+                throw new IllegalStateException("Ни SHARDS_CONFIG, ни SHARDS_CONFIG_PATH не заданы");
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке SHARDS_CONFIG");
+            throw new IllegalStateException("Ошибка при загрузке SHARDS_CONFIG", e);
+        }
+    }
 }
+

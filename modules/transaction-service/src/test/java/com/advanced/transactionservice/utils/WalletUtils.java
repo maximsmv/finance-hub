@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public class WalletUtils {
 
-    private static final UUID WALLET_TYPE_UID = UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e");
+    public static final UUID WALLET_TYPE_UID = UUID.fromString("e32bd41e-bb27-4942-adce-f2b406aa5f3e");
 
     public static WalletType getWalletType(WalletTypeRepository repository) {
         return repository.findById(WALLET_TYPE_UID)
