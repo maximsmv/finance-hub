@@ -33,7 +33,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorValidationResponse'
 
-  /wallets/{walletUid}:
+  /wallets/{walletUid}/{userUid}:
     get:
       summary: Получение информации о кошельке
       tags:
@@ -41,6 +41,11 @@ paths:
       operationId: getWalletByUid
       parameters:
         - name: walletUid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userUid
           in: path
           required: true
           schema:

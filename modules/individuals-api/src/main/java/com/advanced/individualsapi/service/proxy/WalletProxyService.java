@@ -25,8 +25,9 @@ public class WalletProxyService {
                 .flatMapMany(userUid -> transactionClient.getWalletsByUser(userUid.toString()));
     }
 
-    public Mono<WalletResponse> getWalletByUid(UUID walletUid) {
-        return transactionClient.getWalletByUid(walletUid.toString());
+    public Mono<WalletResponse> getWalletByUid(UUID walletUid, Jwt jwt) {
+        return jwtUtil.extractUserUid(jwt)
+                .flatMap(userUid -> transactionClient.getWalletByUid(walletUid.toString(), userUid.toString()));
     }
 
     public Mono<WalletResponse> createWallet(Mono<CreateWalletRequest> requestMono, Jwt jwt) {

@@ -29,12 +29,12 @@ repositories {
 }
 
 ext {
-	set('opentelemetryVersion', "2.16.0")
+	set('opentelemetryVersion', "2.6.0")
 }
 
 dependencies {
 	implementation 'com.advanced:api-contract:1.0.0'
-	implementation 'com.advanced:transaction-api-contract:1.0.1'
+	implementation 'com.advanced:transaction-api-contract:1.0.3'
 
 	// ------------------------------ SPRING ------------------------------
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -49,6 +49,7 @@ dependencies {
 	}
 
 	// ------------------------------ OTel ------------------------------
+	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 	implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
 
 	// ------------------------------ METRIC ------------------------------

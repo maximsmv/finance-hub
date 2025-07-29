@@ -2,7 +2,6 @@ package com.advanced.transactionservice.service.impl;
 
 import com.advanced.contract.model.CreateWalletRequest;
 import com.advanced.contract.model.WalletResponse;
-import com.advanced.transactionservice.exception.WalletBalanceException;
 import com.advanced.transactionservice.mapper.WalletMapper;
 import com.advanced.transactionservice.model.Wallet;
 import com.advanced.transactionservice.model.WalletStatus;
@@ -61,7 +60,7 @@ class WalletServiceImplTest {
     }
 
     @Test
-    void getWalletByUid_shouldReturnWallet() {
+    void getWalletByUid_shouldReturnWalletUidAndUser() {
         UUID walletUid = UUID.randomUUID();
         Wallet wallet = new Wallet();
         WalletResponse response = new WalletResponse();

@@ -11,7 +11,7 @@ spring:
           jwk-set-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
 keycloak:
   realm: my-realm
-  auth-server-url: http://keycloak-postgres:8081
+  auth-server-url: http://keycloak:8081
   resource: individuals-api
   credentials:
     secret: miwEW85QXAd55svjd2fIbJhvJEWaOpeD
@@ -28,10 +28,25 @@ keycloak:
     userInfo: /realms/${keycloak.realm}/protocol/openid-connect/userinfo
 
 management:
+  port: 8080
   endpoints:
     web:
       exposure:
-        include: prometheus,health,info
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    prometheus:
+      enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+    otlp:
+      endpoint: http://alloy:4318
+      protocol: http/protobuf
 
 springdoc:
   api-docs:
@@ -39,22 +54,8 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-otel:
-  resource:
-    attributes:
-      service.name: individuals-api
-  exporter:
-    otlp:
-      endpoint: http://otel-collector:4318
-  logs:
-    exporter: otlp
-  metrics:
-    exporter: otlp
-  traces:
-    exporter: otlp
-
 person-service:
   base-url: http://person-service:8082
 
 transaction-service:
-  base-url: http://transaction-service:8083
+  base-url: http://transaction-service:8083/api/v1

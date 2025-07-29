@@ -46,10 +46,17 @@ public class WalletServiceImpl implements WalletService {
         return walletMapper.toResponse(saved);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public WalletResponse getWalletByUid(UUID walletUid) {
         Wallet wallet = walletRepository.findById(walletUid)
+                .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
+        return walletMapper.toResponse(wallet);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WalletResponse getWalletByUid(UUID walletUid, UUID userUid) {
+        Wallet wallet = walletRepository.findByUidAndUserUid(walletUid, userUid)
                 .orElseThrow(() -> new EntityNotFoundException("Wallet not found"));
         return walletMapper.toResponse(wallet);
     }

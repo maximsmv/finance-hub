@@ -14,6 +14,8 @@ public interface WalletService {
 
     WalletResponse getWalletByUid(UUID walletUid);
 
+    WalletResponse getWalletByUid(UUID walletUid, UUID userUid);
+
     List<WalletResponse> getWalletsByUser(UUID userUid);
 
     void transfer(

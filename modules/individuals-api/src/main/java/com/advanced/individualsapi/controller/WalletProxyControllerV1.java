@@ -35,8 +35,8 @@ public class WalletProxyControllerV1 {
     @WithSpan
     @GetMapping("/{walletUid}")
     @ResponseStatus(HttpStatus.OK)
-    public Mono<WalletResponse> getWalletByUid(@PathVariable UUID walletUid) {
-        return proxyService.getWalletByUid(walletUid);
+    public Mono<WalletResponse> getWalletByUid(@PathVariable UUID walletUid, @AuthenticationPrincipal Jwt jwt) {
+        return proxyService.getWalletByUid(walletUid, jwt);
     }
 
     @Timed

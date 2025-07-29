@@ -35,27 +35,28 @@ kafka:
     withdrawal-failed: withdrawal-failed
 
 management:
+  port: 8083
   endpoints:
     web:
       exposure:
-        include: prometheus,health,info
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    prometheus:
+      enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+    otlp:
+      endpoint: http://alloy:4318
+      protocol: http/protobuf
 
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
-
-otel:
-  resource:
-    attributes:
-      service.name: transaction-service
-  exporter:
-    otlp:
-      endpoint: http://otel-collector:4318
-  logs:
-    exporter: otlp
-  metrics:
-    exporter: otlp
-  traces:
-    exporter: otlp

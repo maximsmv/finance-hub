@@ -30,9 +30,9 @@ public class WalletRestControllerV1 {
 
     @Timed
     @WithSpan
-    @GetMapping("/{walletUid}")
-    public WalletResponse getWalletByUid(@Valid @PathVariable UUID walletUid) {
-        return walletService.getWalletByUid(walletUid);
+    @GetMapping("/{walletUid}/{userUid}")
+    public WalletResponse getWalletByUid(@Valid @PathVariable UUID walletUid, @PathVariable UUID userUid) {
+        return walletService.getWalletByUid(walletUid, userUid);
     }
 
     @Timed

@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    set('opentelemetryVersion', "2.16.0")
+    set('opentelemetryVersion', "2.6.0")
 }
 
 dependencies {
@@ -39,10 +39,10 @@ dependencies {
     implementation 'org.postgresql:postgresql'
 
     // ------------------------------ OTel ------------------------------
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter'
 
     // ------------------------------ METRIC ------------------------------
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // ------------------------------ DEVTOOLS ------------------------------
