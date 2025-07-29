@@ -19,7 +19,7 @@ System_Ext(prometheus, "Prometheus", "Сбор метрик")
 System_Ext(tempo, "Tempo", "Хранение трейсингов")
 System_Ext(loki, "Loki", "Хранение логов")
 System_Ext(grafana, "Grafana", "Дашборды метрик, логов и трейсингов")
-System_Ext(otel_collector, "OpenTelemetry Collector", "Централизованный сбор телеметрии")
+System_Ext(alloy, "Alloy", "Централизованный сбор телеметрии")
 
 ' Взаимодействия
 Rel(user, individuals_api, "Взаимодействует через HTTP")
@@ -29,13 +29,17 @@ Rel(individuals_api, transaction_service, "Проксирует запросы",
 
 Rel(transaction_service, kafka, "Публикует и слушает сообщения", "Kafka protocol")
 
-Rel(person_service, otel_collector, "Отправляет телеметрию", "OTLP")
-Rel(individuals_api, otel_collector, "Отправляет телеметрию", "OTLP")
-Rel(transaction_service, otel_collector, "Отправляет телеметрию", "OTLP")
+Rel(prometheus, person_service, "Scrap metric", "OTLP")
+Rel(prometheus, individuals_api, "Scrap metric", "OTLP")
+Rel(prometheus, transaction_service, "Scrap metric", "OTLP")
 
-Rel(otel_collector, prometheus, "Пушит метрики")
-Rel(otel_collector, tempo, "Пушит трассировки")
-Rel(otel_collector, loki, "Пушит логи")
+Rel(person_service, alloy, "Отправляет телеметрию", "OTLP")
+Rel(individuals_api, alloy, "Отправляет телеметрию", "OTLP")
+Rel(transaction_service, alloy, "Отправляет телеметрию", "OTLP")
+
+
+Rel(alloy, tempo, "Пушит трассировки")
+Rel(alloy, loki, "Пушит логи")
 
 Rel(grafana, prometheus, "Считывает метрики")
 Rel(grafana, tempo, "Считывает трейсинги")
