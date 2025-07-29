@@ -27,7 +27,7 @@ package "transaction-service" {
     [OpenTelemetry]
     [Logback (OpenTelemetryAppender)]
     [JPA]
-    [Hibernate Envers]
+    [Hibernate Envers (Добавлю в след. версии)]
 }
 
 package "Infrastructure" {
@@ -36,7 +36,7 @@ package "Infrastructure" {
 }
 
 package "Monitoring" {
-    [OTel Collector]
+    [Alloy]
     [Prometheus]
     [Loki]
     [Tempo]
@@ -89,26 +89,19 @@ package "Testing" {
 [WalletRepository] ..> [JPA] : Доступ к данным
 [WalletTypeRepository] ..> [JPA] : Доступ к данным
 
-[PaymentRequestRepository] ..> [Hibernate Envers] : Аудит изменений
-[TransferOperationRepository] ..> [Hibernate Envers] : Аудит изменений
-[WalletRepository] ..> [Hibernate Envers] : Аудит изменений
+[PaymentRequestRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
+[TransferOperationRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
+[WalletRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
 
 [JPA] --> [PostgreSQL] : Хранилище данных
-[Hibernate Envers] --> [JPA] : Использует для записи аудита
+[Hibernate Envers (Добавлю в след. версии)] --> [JPA] : Использует для записи аудита
 
-[TransactionService] --> [ActuatorEndpoints] : Предоставление метрик
-[TransactionService] --> [OpenTelemetry] : Трассировка запросов
-
-[WalletService] --> [ActuatorEndpoints] : Предоставление метрик
-[WalletService] --> [OpenTelemetry] : Трассировка запросов
-
-[ActuatorEndpoints] --> [OTel Collector] : Забор метрик
+[Prometheus] --> [ActuatorEndpoints] : Забор метрик
 [OpenTelemetry] --> [OTel Collector] : Отправка трасс
 [Logback (OpenTelemetryAppender)] --> [OTel Collector] : Отправка логов
 
-[OTel Collector] --> [Prometheus] : Забор метрик
-[OTel Collector] --> [Tempo] : Отправка трасс
-[OTel Collector] --> [Loki] : Отправка логов
+[Alloy] --> [Tempo] : Отправка трасс
+[Alloy] --> [Loki] : Отправка логов
 [Tempo] --> [Grafana] : Просмотр трасс
 [Loki] --> [Grafana] : Просмотр логов
 [Prometheus] --> [Grafana] : Просмотр метрик
