@@ -11,6 +11,7 @@
 
 ```
 finance-hub/
+├── demo/                         # Содержит Postman Collection для импорта
 ├── modules/
 │   ├── individuals-api           # API-шлюз, интеграция с Keycloak, оркестрация (SAGA)
 │   ├── person-service            # Сервис для управления персональными данными
