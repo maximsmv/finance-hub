@@ -1,50 +1,33 @@
 @startuml
 package "transaction-service" {
-
-  package "REST Controllers" {
     [TransactionRestControllerV1]
     [WalletRestControllerV1]
     [GlobalExceptionHandler (@ControllerAdvice)]
-  }
 
-  package "Services" {
     [TransactionService]
     [WalletService]
     [WalletTypeService]
     [CalculationFeeService]
-  }
 
-  package "Validation" {
     [TransactionValidation]
     [WalletValidation]
-  }
 
-  package "Repositories" {
     [PaymentRequestRepository]
     [TransferOperationRepository]
     [WalletRepository]
     [WalletTypeRepository]
-  }
 
-  package "KafkaProducers" {
     [DepositRequestedProducer]
     [WithdrawalRequestedProducer]
-  }
-
-  package "KafkaListeners" {
     [DepositCompletedListener]
     [WithdrawalCompletedListener]
     [WithdrawalFailedListener]
-  }
 
-  package "Telemetry" {
     [ActuatorEndpoints]
     [OpenTelemetry]
     [Logback (OpenTelemetryAppender)]
-  }
-
-  [JPA]
-  [Hibernate Envers]
+    [JPA]
+    [Hibernate Envers (Добавлю в след. версии)]
 }
 
 package "Infrastructure" {
@@ -53,7 +36,7 @@ package "Infrastructure" {
 }
 
 package "Monitoring" {
-    [OTel Collector]
+    [Alloy]
     [Prometheus]
     [Loki]
     [Tempo]
@@ -70,41 +53,63 @@ package "Testing" {
     [Mockito]
 }
 
-[REST Controllers] --> [Services] : Обрабатывает HTTP запросы
-
-[Services] --> [Validation] : Валидация
-[Services] --> [Repositories] : Управление данными
+[TransactionRestControllerV1] --> [TransactionService] : Обрабатывает HTTP запросы
+[WalletRestControllerV1] --> [WalletService] : Обрабатывает HTTP запросы
 
 [TransactionService] --> [WalletService] : Получение данных о кошельках
 [TransactionService] --> [CalculationFeeService] : Подсчет комиссии по платежам
-[TransactionService] --> [KafkaProducers] : Отправка событий
+[TransactionService] --> [TransactionValidation] : Валидация запоросов по платежам
+[TransactionService] --> [PaymentRequestRepository] : Управление платежами
+[TransactionService] --> [TransferOperationRepository] : Управление операций по трансферу
+[TransactionService] --> [DepositRequestedProducer] : Отправка события о подтверждении пополнения кошелька
+[TransactionService] --> [WithdrawalRequestedProducer] : Отправка события о подтверждении списания с кошелька
 
-[KafkaProducers] --> [Kafka] : Регистрация событий
+[WalletService] --> [WalletRepository] : Управление кошельками
+[WalletService] --> [WalletValidation] : Валидация кошельков для операций
 
-[KafkaListeners] --> [Kafka] : Чтение события
-[KafkaListeners] --> [Repositories] : Обновление информации по платежу
-[KafkaListeners] --> [Services] : Проведение операций
+[WalletTypeService] --> [WalletTypeRepository] : Получение типов кошельков
 
-[Repositories] ..> [JPA] : Доступ к данным
-[Repositories] ..> [Hibernate Envers] : Аудит изменений
+[DepositRequestedProducer] --> [Kafka] : Регистрация события о подтверждении пополнения кошелька
+[WithdrawalRequestedProducer] --> [Kafka] : Регистрация события о подтверждении списания с кошелька
+
+[DepositCompletedListener] --> [Kafka] : Чтение события о завершении операций пополнения кошелька
+[WithdrawalCompletedListener] --> [Kafka] : Чтение события о подтверждении списания с кошелька
+[WithdrawalFailedListener] --> [Kafka] : Чтение события о ошибке списания с кошелька
+
+[DepositCompletedListener] --> [PaymentRequestRepository] : Обновление информации по платежу
+[WithdrawalCompletedListener] --> [PaymentRequestRepository] : Обновление информации по платежу
+[WithdrawalFailedListener] --> [PaymentRequestRepository] : Обновление информации по платежу
+
+[DepositCompletedListener] --> [WalletService] : Проведение операции
+[WithdrawalCompletedListener] --> [WalletService] : Проведение операции
+[WithdrawalFailedListener] --> [WalletService] : Проведение операции
+
+[PaymentRequestRepository] ..> [JPA] : Доступ к данным
+[TransferOperationRepository] ..> [JPA] : Доступ к данным
+[WalletRepository] ..> [JPA] : Доступ к данным
+[WalletTypeRepository] ..> [JPA] : Доступ к данным
+
+[PaymentRequestRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
+[TransferOperationRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
+[WalletRepository] ..> [Hibernate Envers (Добавлю в след. версии)] : Аудит изменений
 
 [JPA] --> [PostgreSQL] : Хранилище данных
-[Hibernate Envers] --> [JPA] : Использует для записи аудита
+[Hibernate Envers (Добавлю в след. версии)] --> [JPA] : Использует для записи аудита
 
-[Services] --> [ActuatorEndpoints] : Предоставление метрик
-[Services] --> [OpenTelemetry] : Трассировка запросов
+[Prometheus] --> [ActuatorEndpoints] : Забор метрик
+[OpenTelemetry] --> [OTel Collector] : Отправка трасс
+[Logback (OpenTelemetryAppender)] --> [OTel Collector] : Отправка логов
 
-[Telemetry] --> [OTel Collector] : Забор метрик, трасс и логов
-
-[OTel Collector] --> [Prometheus] : Забор метрик
-[OTel Collector] --> [Tempo] : Отправка трасс
-[OTel Collector] --> [Loki] : Отправка логов
+[Alloy] --> [Tempo] : Отправка трасс
+[Alloy] --> [Loki] : Отправка логов
 [Tempo] --> [Grafana] : Просмотр трасс
 [Loki] --> [Grafana] : Просмотр логов
 [Prometheus] --> [Grafana] : Просмотр метрик
 
 [transaction-service] --> [Docker] : Развертывание
-[Services] --> [JUnit 5] : Юнит-тесты
-[Services] --> [Mockito] : Мокирование зависимостей
+[TransactionService] --> [JUnit 5] : Юнит-тесты
+[TransactionService] --> [Mockito] : Мокирование зависимостей
+[WalletService] --> [JUnit 5] : Юнит-тесты
+[WalletService] --> [Mockito] : Мокирование зависимостей
 [transaction-service] --> [TestContainers] : Интеграционные тесты
 @enduml
