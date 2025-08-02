@@ -105,7 +105,7 @@ class WalletRestControllerV1Test extends AbstractIntegrationTest {
         Wallet wallet = WalletUtils.createWallet(walletTypeRepository, walletRepository, "Test", new BigDecimal("100.00"));
 
         webTestClient.get()
-                .uri("/api/v1/wallets/" + wallet.getUid())
+                .uri("/api/v1/wallets/" + wallet.getUid() + "/" + wallet.getUserUid())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(WalletResponse.class)
@@ -119,9 +119,10 @@ class WalletRestControllerV1Test extends AbstractIntegrationTest {
     @Test
     void getWalletByUid_shouldReturnNotFound_whenWalletDoesNotExist() {
         UUID walletUid = UUID.randomUUID();
+        UUID userUid = UUID.randomUUID();
 
         webTestClient.get()
-                .uri("/api/v1/wallets/" + walletUid)
+                .uri("/api/v1/wallets/" + walletUid + "/" + userUid)
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody()
@@ -132,7 +133,7 @@ class WalletRestControllerV1Test extends AbstractIntegrationTest {
     @Test
     void getWalletByUid_shouldReturnBadRequest_whenUidInvalid() {
         webTestClient.get()
-                .uri("/api/v1/wallets/not-a-uuid")
+                .uri("/api/v1/wallets/not-a-uuid/not-a-uuid")
                 .exchange()
                 .expectStatus().isBadRequest();
     }

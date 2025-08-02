@@ -87,7 +87,7 @@ public class WalletIntegrationTest {
         mockServerClient.when(
                 request()
                         .withMethod("GET")
-                        .withPath("/wallets/" + walletUid)
+                        .withPath("/wallets/" + walletUid + "/" + USER_UID)
         ).respond(
                 response()
                         .withStatusCode(200)
@@ -101,7 +101,7 @@ public class WalletIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.walletUid").isEqualTo(walletUid.toString())
+                .jsonPath("$.wallet_uid").isEqualTo(walletUid.toString())
                 .jsonPath("$.currency").isEqualTo("RUB")
                 .jsonPath("$.balance").isEqualTo(500.00);
     }
@@ -149,8 +149,8 @@ public class WalletIntegrationTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody()
-                .jsonPath("$.walletUid").isEqualTo(walletUid.toString())
-                .jsonPath("$.userUid").isEqualTo(USER_UID.toString())
+                .jsonPath("$.wallet_uid").isEqualTo(walletUid.toString())
+                .jsonPath("$.user_uid").isEqualTo(USER_UID.toString())
                 .jsonPath("$.currency").isEqualTo("USD")
                 .jsonPath("$.balance").isEqualTo(0.0)
                 .jsonPath("$.status").isEqualTo("ACTIVE");
@@ -335,7 +335,7 @@ public class WalletIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.transactionUid").isEqualTo(transactionUid)
+                .jsonPath("$.transaction_uid").isEqualTo(transactionUid)
                 .jsonPath("$.status").isEqualTo("pending");
     }
 
@@ -367,7 +367,7 @@ public class WalletIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.transactionUid").isEqualTo(transactionUid)
+                .jsonPath("$.transaction_uid").isEqualTo(transactionUid)
                 .jsonPath("$.status").isEqualTo("COMPLETED");
     }
 }

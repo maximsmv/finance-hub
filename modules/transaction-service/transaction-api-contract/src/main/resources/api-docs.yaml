@@ -272,8 +272,8 @@ components:
     CreateWalletRequest:
       type: object
       required:
-        - userUid
-        - currency
+        - user_uid
+        - wallet_type_uid
         - name
       properties:
         name:

@@ -69,7 +69,7 @@ public class TransactionRestControllerV1Test extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$[0].transactionUid").isEqualTo(transaction.getUid().toString())
+                .jsonPath("$[0].transaction_uid").isEqualTo(transaction.getUid().toString())
                 .jsonPath("$[0].type").isEqualTo("DEPOSIT")
                 .jsonPath("$[0].status").isEqualTo("PENDING");
     }
