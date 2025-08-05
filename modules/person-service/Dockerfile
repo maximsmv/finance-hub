@@ -18,7 +18,8 @@ COPY api-contract/settings.gradle api-contract/settings.gradle
 COPY src src
 COPY api-contract/src api-contract/src
 
-RUN gradle build --no-daemon -x test --debug
+RUN gradle build --no-daemon -x test --debug \
+    && gradle publish
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app

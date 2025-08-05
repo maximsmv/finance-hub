@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.advanced'
-version = '1.0.3'
+version = '1.0.0-SNAPSHOT'
 description = 'transaction-api-contract'
 
 java {
@@ -69,11 +69,11 @@ publishing {
     repositories {
 //        mavenLocal()
         maven {
-            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/repository/maven-snapshots/'
             allowInsecureProtocol = true
             credentials {
-                username = System.getenv('ARTIFACTORY_USER') ?: 'person-service'
-                password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'Person_service1'
+                username = System.getenv('ARTIFACTORY_USER') ?: 'admin'
+                password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'admin'
             }
         }
     }

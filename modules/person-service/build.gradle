@@ -70,10 +70,6 @@ dependencyManagement {
     }
 }
 
-tasks.named('build') {
-    dependsOn(':api-contract:publish')
-}
-
 tasks.named('test') {
     useJUnitPlatform()
 }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.advanced'
-version = '1.0.10'
+version = '1.0.0-SNAPSHOT'
 description = 'Kafka Contracts'
 
 java {
@@ -60,11 +60,11 @@ publishing {
     repositories {
         maven {
             name = "artifactory"
-            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+            url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/repository/maven-snapshots/'
             allowInsecureProtocol = true
             credentials {
-                username = project.findProperty("ARTIFACTORY_USER") ?: "person-service"
-                password = project.findProperty("ARTIFACTORY_PASSWORD") ?: "Person_service1"
+                username = project.findProperty("ARTIFACTORY_USER") ?: "admin"
+                password = project.findProperty("ARTIFACTORY_PASSWORD") ?: "admin"
             }
         }
     }

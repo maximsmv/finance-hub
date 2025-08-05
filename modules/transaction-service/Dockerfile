@@ -18,7 +18,8 @@ COPY transaction-api-contract/settings.gradle transaction-api-contract/settings.
 COPY src src
 COPY transaction-api-contract/src transaction-api-contract/src
 
-RUN gradle build --no-daemon -x test --debug
+RUN gradle build --no-daemon -x test --debug \
+    && gradle publish
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app

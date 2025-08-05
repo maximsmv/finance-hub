@@ -25,11 +25,11 @@ configurations {
 
 repositories {
 	maven {
-		url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/artifactory/libs-release-local/'
+		url = System.getenv('ARTIFACTORY_URL') ?: 'http://localhost:8092/repository/maven-snapshots/'
 		allowInsecureProtocol = true
 		credentials {
-			username = System.getenv('ARTIFACTORY_USER') ?: 'person-service'
-			password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'Person_service1'
+			username = System.getenv('ARTIFACTORY_USER') ?: 'admin'
+			password = System.getenv('ARTIFACTORY_PASSWORD') ?: 'admin'
 		}
 	}
 	mavenCentral()
@@ -42,7 +42,7 @@ ext {
 
 dependencies {
 	implementation project(':transaction-api-contract')
-	implementation 'com.advanced:kafka-contracts:1.0.9'
+	implementation 'com.advanced:kafka-contracts:1.0.0-SNAPSHOT'
 
 	// ------------------------------ SPRING ------------------------------
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -108,10 +108,6 @@ tasks.register('flywayMigrateDs1', FlywayMigrateTask) {
 	url 		= System.getenv('FLYWAY_MIGRATE_DS1_URL') 		?: 'jdbc:postgresql://localhost:5434/transaction_db_1'
 	user 		= System.getenv('FLYWAY_MIGRATE_DS1_USER') 		?: 'transaction-service'
 	password 	= System.getenv('FLYWAY_MIGRATE_DS1_PASSWORD') 	?: 'password'
-}
-
-tasks.named('build') {
-	dependsOn(':transaction-api-contract:publish')
 }
 
 tasks.named('test') {

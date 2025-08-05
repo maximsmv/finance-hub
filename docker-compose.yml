@@ -1,22 +1,36 @@
 version: '3.8'
 
 services:
-#  Раскомментируйте и настройте Artifactory, если у вас его нет.
-#
-#  artifactory-service:
-#    image: docker.bintray.io/jfrog/artifactory-oss:7.49.6
-#    container_name: artifactory
-#    restart: always
-#    ports:
-#      - "8091:8081"
-#      - "8092:8082"
-#    volumes:
-#      - artifactory_data:/var/opt/jfrog/artifactory
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8081/artifactory/api/system/ping"]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 20
+  nexus:
+    image: sonatype/nexus3:3.76.0
+    container_name: nexus
+    ports:
+      - "8092:8081"
+    volumes:
+      - nexus_data:/nexus-data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/service/rest/v1/status"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+    networks:
+      - application-network
+
+  nexus-change-password:
+    image: appropriate/curl
+    container_name: nexus-change-password
+    environment:
+      - NEXUS_ADMIN_PASSWORD_FILE=/nexus-data/admin.password
+      - NEXUS_NEW_PASSWORD=admin
+    depends_on:
+      nexus:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/scripts/change-password.sh"]
+    volumes:
+      - nexus_data:/nexus-data
+      - ./nexus:/scripts:ro
+    networks:
+      - application-network
 
   individuals-api:
     container_name: individuals-api
@@ -24,9 +38,9 @@ services:
       context: ./modules/individuals-api
       dockerfile: Dockerfile
       args:
-        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
-        ARTIFACTORY_USER: person-service
-        ARTIFACTORY_PASSWORD: Person_service1
+        ARTIFACTORY_URL: http://host.docker.internal:8092/repository/maven-snapshots/
+        ARTIFACTORY_USER: admin
+        ARTIFACTORY_PASSWORD: admin
     environment:
       OTEL_SERVICE_NAME: person-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
@@ -40,10 +54,12 @@ services:
     volumes:
       - individuals_api_gradle_cache:/home/gradle/.gradle
     depends_on:
+      person-service:
+        condition: service_healthy
+      transaction-service:
+        condition: service_healthy
       keycloak:
         condition: service_healthy
-      alloy:
-        condition: service_started
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
       interval: 30s
@@ -59,9 +75,9 @@ services:
       context: ./modules/person-service
       dockerfile: Dockerfile
       args:
-        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
-        ARTIFACTORY_USER: person-service
-        ARTIFACTORY_PASSWORD: Person_service1
+        ARTIFACTORY_URL: http://host.docker.internal:8092/repository/maven-snapshots/
+        ARTIFACTORY_USER: admin
+        ARTIFACTORY_PASSWORD: admin
     environment:
       OTEL_SERVICE_NAME: person-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
@@ -96,9 +112,9 @@ services:
       context: ./modules/transaction-service
       dockerfile: Dockerfile
       args:
-        ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local/
-        ARTIFACTORY_USER: person-service
-        ARTIFACTORY_PASSWORD: Person_service1
+        ARTIFACTORY_URL: http://host.docker.internal:8092/repository/maven-snapshots/
+        ARTIFACTORY_USER: admin
+        ARTIFACTORY_PASSWORD: admin
     environment:
       SHARDS_CONFIG_PATH: config/sharding_config.json
       OTEL_SERVICE_NAME: transaction-service
@@ -113,8 +129,6 @@ services:
       - ./config/transaction_service_sharding_config.json:/app/config/sharding_config.json:ro
     depends_on:
       transaction-service-migration:
-        condition: service_completed_successfully
-      kafka-contracts:
         condition: service_completed_successfully
       kafka:
         condition: service_started
@@ -157,9 +171,11 @@ services:
     build:
       context: ./modules/kafka-contracts
     environment:
-      ARTIFACTORY_URL: http://host.docker.internal:8092/artifactory/libs-release-local
-      ARTIFACTORY_USER: person-service
-      ARTIFACTORY_PASSWORD: Person_service1
+      ARTIFACTORY_URL: http://nexus:8081/repository/maven-snapshots/
+      ARTIFACTORY_USER: admin
+      ARTIFACTORY_PASSWORD: admin
+    networks:
+      - application-network
 
   kafka-ui:
     container_name: kafka-ui
@@ -483,10 +499,9 @@ volumes:
     driver: local
   keycloak_data:
     driver: local
-  artifactory_data:
-    driver: local
   loki_data:
   loki_chunks:
   loki_index:
   loki_rules:
   minio_data:
+  nexus_data:
